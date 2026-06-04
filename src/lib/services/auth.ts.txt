@@ -1,0 +1,42 @@
+import api from '../api';
+import { tokens } from '../api';
+import type { User, AuthTokens } from '../../types';
+
+export interface LoginPayload { email: string; password: string; }
+export interface RegisterPayload {
+  email: string; first_name: string; last_name: string;
+  phone: string; role: string; password: string; password2: string; language?: string;
+}
+
+export const authService = {
+  async login(payload: LoginPayload): Promise<{ user: User; tokens: AuthTokens }> {
+    // Step 1: get tokens from simplejwt
+    const { data: tkn } = await api.post<AuthTokens>('/auth/login/', payload);
+    tokens.setTokens(tkn.access, tkn.refresh);
+    // Step 2: fetch user profile
+    const { data: user } = await api.get<User>('/auth/me/');
+    return { user, tokens: tkn };
+  },
+
+  async register(payload: RegisterPayload): Promise<{ detail: string }> {
+    const { data } = await api.post<{ detail: string }>('/auth/register/', payload);
+    return data;
+  },
+
+  async me(): Promise<User> {
+    const { data } = await api.get<User>('/auth/me/');
+    return data;
+  },
+
+  async logout(): Promise<void> {
+    const refresh = tokens.getRefresh();
+    if (refresh) {
+      try { await api.post('/auth/logout/', { refresh }); } catch { /* ignore */ }
+    }
+    tokens.clearTokens();
+  },
+
+  async changePassword(old_password: string, new_password: string): Promise<void> {
+    await api.put('/auth/change-password/', { old_password, new_password });
+  },
+};

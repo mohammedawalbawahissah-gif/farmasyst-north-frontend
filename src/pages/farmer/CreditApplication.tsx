@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toArray } from '../../lib/api';
 import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
@@ -162,12 +163,12 @@ export default function CreditApplication() {
           <div className="app-step">
             <h3>Application details</h3>
 
-            {farms.data && farms.data.results.length > 0 && (
+            {toArray(farms.data).length > 0 && (
               <div className="form-field">
                 <label>Select farm (optional)</label>
                 <select value={farmId} onChange={e => setFarmId(e.target.value)}>
                   <option value="">— No specific farm —</option>
-                  {farms.data.results.map(f => (
+                  {toArray(farms.data).map(f => (
                     <option key={f.id} value={f.id}>{f.name} · {f.district}</option>
                   ))}
                 </select>
@@ -240,7 +241,7 @@ export default function CreditApplication() {
 
             <div className="step-actions">
               <Button variant="secondary" onClick={() => setStep(2)}>← Back</Button>
-              <Button variant="ghost" onClick={() => setStep(4)}>Skip for now</Button>
+              <Button variant="secondary" onClick={() => setStep(4)}>Skip for now</Button>
               <Button disabled={!docFile || saving} onClick={handleUpload}>
                 {saving ? 'Uploading…' : 'Upload & Continue →'}
               </Button>
@@ -280,7 +281,7 @@ export default function CreditApplication() {
       </Card>
 
       {/* Previous applications */}
-      {apps.data && apps.data.results.length > 0 && (
+      {toArray(apps.data).length > 0 && (
         <div style={{ marginTop: '2.5rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>Your Previous Applications</h3>
           <Card>
@@ -289,7 +290,7 @@ export default function CreditApplication() {
                 <tr><th>Reference</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr>
               </thead>
               <tbody>
-                {apps.data.results.slice(0, 8).map(app => (
+                {toArray(apps.data).slice(0, 8).map(app => (
                   <tr key={app.id}>
                     <td className="data-table__mono">{app.reference}</td>
                     <td>{app.credit_type}</td>

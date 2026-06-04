@@ -6,14 +6,14 @@ import { tokens } from './api';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
+  login: (payload: LoginPayload) => Promise<{ user: User }>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: async () => {},
+  login: async () => ({ user: null as unknown as User }),
   logout: async () => {},
 });
 
@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (payload: LoginPayload) => {
     const { user: me } = await authService.login(payload);
     setUser(me);
+    return { user: me };
   };
 
   const logout = async () => {

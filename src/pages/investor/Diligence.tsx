@@ -1,4 +1,5 @@
 import { PageHeader, Card, Badge, SectionTitle } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
 import './investor.css';
@@ -11,7 +12,7 @@ export default function DueDiligence() {
   const audits = useAsync(() => farmsService.listAudits(), []);
   const farms  = useAsync(() => farmsService.list(), []);
 
-  const farmMap = Object.fromEntries((farms.data?.results ?? []).map(f => [f.id, f]));
+  const farmMap = Object.fromEntries((toArray(farms.data)).map(f => [f.id, f]));
 
   return (
     <div>
@@ -20,7 +21,7 @@ export default function DueDiligence() {
       <SectionTitle>Field Audit Reports</SectionTitle>
       {audits.loading
         ? <p style={{color:'var(--col-muted)'}}>Loading audit reports…</p>
-        : (audits.data?.results.length ?? 0) === 0
+        : (toArray(audits.data).length) === 0
         ? <Card><p style={{padding:'var(--sp-lg)',color:'var(--col-muted)',textAlign:'center'}}>No audit reports available yet.</p></Card>
         : (
           <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-md)' }}>

@@ -1,4 +1,5 @@
 import { PageHeader, Card, Badge, Button } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { marketplaceService } from '../../lib/services/marketplace';
 import './consumer.css';
@@ -15,7 +16,7 @@ export default function Orders() {
     catch { /* noop */ }
   };
 
-  const all = orders.data?.results ?? [];
+  const all = toArray(orders.data);
 
   return (
     <div>

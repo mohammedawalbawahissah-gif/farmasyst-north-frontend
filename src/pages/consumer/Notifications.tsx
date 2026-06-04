@@ -1,4 +1,5 @@
 import { PageHeader, Card, Button, Badge } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService } from '../../lib/services/notifications';
 import { Bell } from 'lucide-react';
@@ -6,7 +7,7 @@ import '../farmer/farmer.css';
 
 export default function ConsumerNotifications() {
   const notifs = useAsync(() => notificationsService.list(), []);
-  const list   = notifs.data?.results ?? [];
+  const list   = toArray(notifs.data);
   const unread = list.filter(n => !n.is_read).length;
 
   const handleMarkAll = async () => { await notificationsService.markAllRead(); notifs.refetch(); };
@@ -31,7 +32,7 @@ export default function ConsumerNotifications() {
                 <p style={{fontSize:13,color:'var(--col-muted)',margin:0}}>{n.message}</p>
                 <span style={{fontSize:12,color:'var(--col-muted)',marginTop:4,display:'block'}}>{new Date(n.created_at).toLocaleString('en-GH')}</span>
               </div>
-              {!n.is_read && <Button size="sm" variant="ghost" onClick={()=>handleRead(n.id)}>Dismiss</Button>}
+              {!n.is_read && <Button size="sm" variant="secondary" onClick={()=>handleRead(n.id)}>Dismiss</Button>}
             </div>
           </Card>
         ))}

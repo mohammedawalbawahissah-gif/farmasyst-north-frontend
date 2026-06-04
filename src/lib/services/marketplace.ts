@@ -6,8 +6,10 @@ export const marketplaceService = {
     api.get<Paginated<Produce>>('/marketplace/produce/', { params }).then(r => r.data),
   getProduce: (id: string) =>
     api.get<Produce>(`/marketplace/produce/${id}/`).then(r => r.data),
-  createProduce: (data: Partial<Produce>) =>
-    api.post<Produce>('/marketplace/produce/', data).then(r => r.data),
+  createProduce: (data: FormData | Partial<Produce>) =>
+    api.post<Produce>('/marketplace/produce/', data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+    }).then(r => r.data),
   updateProduce: (id: string, data: Partial<Produce>) =>
     api.patch<Produce>(`/marketplace/produce/${id}/`, data).then(r => r.data),
   deleteProduce: (id: string) => api.delete(`/marketplace/produce/${id}/`),

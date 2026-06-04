@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import { authService } from '../../lib/services/auth';
@@ -6,10 +6,11 @@ import './Login.css';
 
 type Mode = 'login' | 'register';
 
+// Admin is intentionally excluded — admin accounts are created internally only
 const ROLES = [
-  { value: 'farmer',   label: '🐔 Poultry Farmer',  desc: 'Apply for credit, manage farm, access training' },
+  { value: 'farmer',   label: '🐔 Poultry Farmer',    desc: 'Apply for credit, manage farm, access training' },
   { value: 'investor', label: '💼 Investor / Partner', desc: 'Fund farmers, track portfolio, view reports' },
-  { value: 'consumer', label: '🛒 Consumer / Buyer',  desc: 'Browse and order quality poultry produce' },
+  { value: 'consumer', label: '🛒 Consumer / Buyer',   desc: 'Browse and order quality poultry produce' },
 ];
 
 export default function Login() {
@@ -19,8 +20,10 @@ export default function Login() {
   const [mode, setMode] = useState<Mode>('login');
 
   // ── Login state ───────────────────────────────────────────────
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
+  const [email,       setEmail]    = useState('');
+  const [password,    setPassword] = useState('');
+  const [loginError,  setLoginError]  = useState('');
+  const [loginBusy,   setLoginBusy]   = useState(false);
 
   // ── Register state ────────────────────────────────────────────
   const [firstName, setFirstName] = useState('');
@@ -30,50 +33,94 @@ export default function Login() {
   const [regEmail,  setRegEmail]  = useState('');
   const [regPass,   setRegPass]   = useState('');
   const [regPass2,  setRegPass2]  = useState('');
+  const [regError,  setRegError]  = useState('');
+  const [regSuccess,setRegSuccess]= useState('');
+  const [regBusy,   setRegBusy]   = useState(false);
 
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
+  const submitting = useRef(false);
+
+  // Reset everything on mount — guards against stale state from HMR or StrictMode
+  useState(() => {
+    submitting.current = false;
+  });
 
   const switchMode = (m: Mode) => {
-    setMode(m); setError(''); setSuccess('');
+    submitting.current = false;
+    setLoginBusy(false);
+    setRegBusy(false);
+    setMode(m);
+    setLoginError(''); setRegError(''); setRegSuccess('');
   };
 
   // ── Login submit ──────────────────────────────────────────────
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    if (submitting.current) return;
+    submitting.current = true;
+    setLoginError('');
+    setLoginBusy(true);
     try {
-      await login({ email, password });
-      navigate('/');
+      const { user: me } = await login({ email, password });
+      navigate(`/${me.role}`);
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(detail ?? 'Invalid email or password. Please try again.');
-    } finally { setLoading(false); }
+      setLoginError(detail ?? 'Invalid email or password. Please try again.');
+      setLoginBusy(false);
+      submitting.current = false;
+    }
   };
 
   // ── Register submit ───────────────────────────────────────────
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
-    setError(''); setSuccess('');
-    if (regPass !== regPass2) { setError('Passwords do not match.'); return; }
-    if (regPass.length < 8)   { setError('Password must be at least 8 characters.'); return; }
-    setLoading(true);
+    if (submitting.current) return;   // hard guard against double-fire
+    submitting.current = true;
+
+    setRegError(''); setRegSuccess('');
+
+    if (regPass !== regPass2) {
+      setRegError('Passwords do not match.');
+      submitting.current = false;
+      return;
+    }
+    if (regPass.length < 8) {
+      setRegError('Password must be at least 8 characters.');
+      submitting.current = false;
+      return;
+    }
+
+    setRegBusy(true);
     try {
       await authService.register({
         email: regEmail, first_name: firstName, last_name: lastName,
         phone, role, password: regPass, password2: regPass2,
       });
-      navigate('/');
+      setRegSuccess(
+        'Account created! It is pending review by a FarmAsyst North administrator. ' +
+        'You will be able to log in once approved.'
+      );
+      setFirstName(''); setLastName(''); setPhone('');
+      setRegEmail(''); setRegPass(''); setRegPass2('');
+      setRole('farmer');
     } catch (err: unknown) {
-      const data = (err as { response?: { data?: Record<string, string[]> } })?.response?.data;
+      const data = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
       if (data) {
-        const first = Object.values(data)[0];
-        setError(Array.isArray(first) ? first[0] : 'Registration failed. Please check your details.');
+        const nfe = data['non_field_errors'];
+        if (Array.isArray(nfe) && nfe.length) {
+          setRegError(String(nfe[0]));
+        } else if (data['detail']) {
+          setRegError(String(data['detail']));
+        } else {
+          const firstVal = Object.values(data)[0];
+          setRegError(Array.isArray(firstVal) ? String(firstVal[0]) : String(firstVal ?? 'Registration failed.'));
+        }
       } else {
-        setError('Registration failed. Please try again.');
+        setRegError('Registration failed. Please try again.');
       }
-    } finally { setLoading(false); }
+    } finally {
+      setRegBusy(false);
+      submitting.current = false;
+    }
   };
 
   return (
@@ -118,7 +165,7 @@ export default function Login() {
                 id="email" type="email" autoComplete="email"
                 placeholder="you@example.com"
                 value={email} onChange={e => setEmail(e.target.value)}
-                required disabled={loading}
+                required disabled={loginBusy}
               />
             </div>
             <div className="login-form__field">
@@ -127,15 +174,15 @@ export default function Login() {
                 id="password" type="password" autoComplete="current-password"
                 placeholder="Enter your password"
                 value={password} onChange={e => setPassword(e.target.value)}
-                required disabled={loading}
+                required disabled={loginBusy}
               />
             </div>
-            {error && <p className="login-form__error">{error}</p>}
+            {loginError && <p className="login-form__error">{loginError}</p>}
             <button
               type="submit" className="login-form__submit"
-              disabled={loading || !email || !password}
+              disabled={loginBusy || !email || !password}
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loginBusy ? 'Signing in…' : 'Sign in'}
             </button>
             <p className="login-form__switch">
               Don't have an account?{' '}
@@ -155,6 +202,7 @@ export default function Login() {
                   key={r.value} type="button"
                   className={`role-card ${role === r.value ? 'role-card--active' : ''}`}
                   onClick={() => setRole(r.value)}
+                  disabled={regBusy}
                 >
                   <span className="role-card__label">{r.label}</span>
                   <span className="role-card__desc">{r.desc}</span>
@@ -169,7 +217,7 @@ export default function Login() {
                 <input
                   id="firstName" type="text" placeholder="Kofi"
                   value={firstName} onChange={e => setFirstName(e.target.value)}
-                  required disabled={loading}
+                  required disabled={regBusy}
                 />
               </div>
               <div className="login-form__field">
@@ -177,7 +225,7 @@ export default function Login() {
                 <input
                   id="lastName" type="text" placeholder="Mensah"
                   value={lastName} onChange={e => setLastName(e.target.value)}
-                  required disabled={loading}
+                  required disabled={regBusy}
                 />
               </div>
             </div>
@@ -187,7 +235,7 @@ export default function Login() {
               <input
                 id="regEmail" type="email" placeholder="you@example.com"
                 value={regEmail} onChange={e => setRegEmail(e.target.value)}
-                required disabled={loading}
+                required disabled={regBusy}
               />
             </div>
 
@@ -196,18 +244,17 @@ export default function Login() {
               <input
                 id="phone" type="tel" placeholder="024XXXXXXX"
                 value={phone} onChange={e => setPhone(e.target.value)}
-                required disabled={loading}
+                required disabled={regBusy}
               />
             </div>
 
-            {/* Password row */}
             <div className="login-form__row">
               <div className="login-form__field">
                 <label htmlFor="regPass">Password</label>
                 <input
                   id="regPass" type="password" placeholder="Min. 8 characters"
                   value={regPass} onChange={e => setRegPass(e.target.value)}
-                  required disabled={loading}
+                  required disabled={regBusy}
                 />
               </div>
               <div className="login-form__field">
@@ -215,19 +262,19 @@ export default function Login() {
                 <input
                   id="regPass2" type="password" placeholder="Repeat password"
                   value={regPass2} onChange={e => setRegPass2(e.target.value)}
-                  required disabled={loading}
+                  required disabled={regBusy}
                 />
               </div>
             </div>
 
-            {error   && <p className="login-form__error">{error}</p>}
-            {success && <p className="login-form__success">{success}</p>}
+            {regError   && <p className="login-form__error">{regError}</p>}
+            {regSuccess && <p className="login-form__success">{regSuccess}</p>}
 
             <button
               type="submit" className="login-form__submit"
-              disabled={loading || !firstName || !lastName || !regEmail || !phone || !regPass || !regPass2}
+              disabled={regBusy || !firstName || !lastName || !regEmail || !phone || !regPass || !regPass2}
             >
-              {loading ? 'Creating account…' : 'Create account'}
+              {regBusy ? 'Creating account…' : 'Create account'}
             </button>
 
             <p className="login-form__switch">

@@ -6,37 +6,32 @@ import Login from './pages/auth/Login';
 
 import FarmerDashboard     from './pages/farmer/Dashboard';
 import CreditApplication   from './pages/farmer/CreditApplication';
+import FarmerContracts     from './pages/farmer/Contracts';
 import FarmManager         from './pages/farmer/FarmManager';
 import Repayments          from './pages/farmer/Repayments';
 import Training            from './pages/farmer/Training';
 import FarmerMarketplace   from './pages/farmer/Marketplace';
 import FarmerNotifications from './pages/farmer/Notifications';
 
-import FarmerContracts     from './pages/farmer/Contracts';
-
-import MonitoringDashboard     from './pages/monitoring/Dashboard';
-import MonitoringFarms         from './pages/monitoring/Farms';
-import MonitoringNotifications from './pages/monitoring/Notifications';
-import SubmitReport            from './pages/monitoring/SubmitReport';
-
 import InvestorDashboard     from './pages/investor/Dashboard';
 import BrowseFarmers         from './pages/investor/Farmers';
+import FarmerProfilePage     from './pages/investor/FarmerProfile';
+import Opportunities         from './pages/investor/Opportunities';
 import Portfolio             from './pages/investor/Portfolio';
 import Contracts             from './pages/investor/Contracts';
-import Opportunities         from './pages/investor/Opportunities';
 import DueDiligence          from './pages/investor/Diligence';
 import ImpactReports         from './pages/investor/Impact';
 import InvestorNotifications from './pages/investor/Notifications';
 
 import AdminDashboard  from './pages/admin/Dashboard';
-import AdminFarms      from './pages/admin/Farms';
 import AdminUsers      from './pages/admin/Users';
+import AdminFarms      from './pages/admin/Farms';
 import AdminCredit     from './pages/admin/CreditWorkflow';
 import AdminMatching   from './pages/admin/Matching';
 import AdminTraining   from './pages/admin/Training';
-import AdminDisputes   from './pages/admin/Disputes';
-import AdminDisbursements from './pages/admin/Disbursements';
-import AdminAnalytics  from './pages/admin/Analytics';
+import AdminDisputes       from './pages/admin/Disputes';
+import AdminDisbursements  from './pages/admin/Disbursements';
+import AdminAnalytics      from './pages/admin/Analytics';
 import AdminAudit      from './pages/admin/Audit';
 import AdminSettings   from './pages/admin/Settings';
 
@@ -67,16 +62,17 @@ function AppRoutes() {
       <Route element={<ProtectedRoutes />}>
         <Route path="/farmer"                 element={<FarmerDashboard />} />
         <Route path="/farmer/credit"          element={<CreditApplication />} />
+        <Route path="/farmer/contracts"       element={<FarmerContracts />} />
         <Route path="/farmer/farm"            element={<FarmManager />} />
         <Route path="/farmer/repayments"      element={<Repayments />} />
-        <Route path="/farmer/contracts"       element={<FarmerContracts />} />
         <Route path="/farmer/training"        element={<Training />} />
         <Route path="/farmer/marketplace"     element={<FarmerMarketplace />} />
         <Route path="/farmer/notifications"   element={<FarmerNotifications />} />
 
-        <Route path="/investor"               element={<InvestorDashboard />} />
-        <Route path="/investor/opportunities" element={<Opportunities />} />
-        <Route path="/investor/farmers"       element={<BrowseFarmers />} />
+        <Route path="/investor"                  element={<InvestorDashboard />} />
+        <Route path="/investor/opportunities"    element={<Opportunities />} />
+        <Route path="/investor/farmers"          element={<BrowseFarmers />} />
+        <Route path="/investor/farmers/:id"      element={<FarmerProfilePage />} />
         <Route path="/investor/portfolio"     element={<Portfolio />} />
         <Route path="/investor/contracts"     element={<Contracts />} />
         <Route path="/investor/diligence"     element={<DueDiligence />} />
@@ -84,8 +80,8 @@ function AppRoutes() {
         <Route path="/investor/notifications" element={<InvestorNotifications />} />
 
         <Route path="/admin"                  element={<AdminDashboard />} />
-        <Route path="/admin/farms"            element={<AdminFarms />} />
         <Route path="/admin/users"            element={<AdminUsers />} />
+        <Route path="/admin/farms"            element={<AdminFarms />} />
         <Route path="/admin/credit"           element={<AdminCredit />} />
         <Route path="/admin/matching"         element={<AdminMatching />} />
         <Route path="/admin/training"         element={<AdminTraining />} />
@@ -99,11 +95,6 @@ function AppRoutes() {
         <Route path="/consumer/orders"        element={<Orders />} />
         <Route path="/consumer/subscriptions" element={<Subscriptions />} />
         <Route path="/consumer/notifications" element={<ConsumerNotifications />} />
-
-        <Route path="/monitoring"                element={<MonitoringDashboard />} />
-        <Route path="/monitoring/farms"          element={<MonitoringFarms />} />
-        <Route path="/monitoring/report"         element={<SubmitReport />} />
-        <Route path="/monitoring/notifications"  element={<MonitoringNotifications />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

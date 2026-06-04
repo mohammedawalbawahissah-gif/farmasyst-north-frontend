@@ -87,3 +87,18 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+/**
+ * Safely normalise any list API response regardless of shape:
+ *   - Paginated<T>  → { count, results: T[] }  → returns results
+ *   - T[]           → plain array               → returns as-is
+ *   - T             → single object             → wraps in array
+ */
+export function toArray<T>(data: unknown): T[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as T[];
+  if (typeof data === 'object' && 'results' in (data as object)) {
+    return ((data as { results: T[] }).results) ?? [];
+  }
+  return [data as T];
+}

@@ -1,4 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import { Users, TrendingUp, FileCheck, BarChart3 } from 'lucide-react';
+import { toArray } from '../../lib/api';
 import { PageHeader, StatCard, Card, Button, SectionTitle, Badge } from '../../components/ui';
 import { useAuth } from '../../lib/auth-context';
 import { useAsync } from '../../lib/hooks/useAsync';
@@ -9,18 +11,27 @@ import './investor.css';
 
 export default function InvestorDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const agreements = useAsync(() => creditService.listAgreements(), []);
   const farms      = useAsync(() => farmsService.list(), []);
 
-  const ags        = agreements.data?.results ?? [];
-  const active     = ags.filter(a => a.status === 'active');
-  const totalAmt   = ags.reduce((s, a) => s + parseFloat(a.amount), 0);
+  const ags           = toArray(agreements.data);
+  const allFarms      = toArray(farms.data);
+  const active        = ags.filter(a => a.status === 'active');
+  const totalAmt      = ags.reduce((s, a) => s + parseFloat(a.amount), 0);
   const uniqueFarmers = new Set(ags.map(a => a.farmer)).size;
 
   return (
     <div>
-      <PageHeader title={`Hello, ${user?.first_name ?? ''} 📊`} subtitle="Your investment portfolio and farmer matches."
-        action={<Button size="sm">+ New Investment Offer</Button>} />
+      <PageHeader
+        title={`Hello, ${user?.first_name ?? ''} 📊`}
+        subtitle="Your investment portfolio and farmer matches."
+        action={
+          <Button size="sm" onClick={() => navigate('/investor/opportunities')}>
+            View Opportunities
+          </Button>
+        }
+      />
 
       <div className="grid-4" style={{ marginBottom: 'var(--sp-xl)' }}>
         <StatCard label="Active Investments" value={active.length} sub="Agreements in progress" icon={<TrendingUp size={16}/>} accent="#1A4A6B" />
@@ -34,7 +45,7 @@ export default function InvestorDashboard() {
           <SectionTitle>Matched Farmers</SectionTitle>
           {farms.loading
             ? <p style={{color:'var(--col-muted)'}}>Loading…</p>
-            : (farms.data?.results.length ?? 0) === 0
+            : (toArray(farms.data).length) === 0
             ? <Card><p style={{padding:'var(--sp-md)',color:'var(--col-muted)'}}>No farmer profiles available yet.</p></Card>
             : (
               <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-sm)' }}>
@@ -46,7 +57,7 @@ export default function InvestorDashboard() {
                       <span className="farmer-match-card__meta">{f.district}, {f.region} · {f.flock_size.toLocaleString()} birds · {f.flock_type}</span>
                     </div>
                     <div className="farmer-match-card__ask"><strong>{f.flock_type}</strong><span>flock</span></div>
-                    <Button size="sm" variant="secondary">View Profile</Button>
+                    <Button size="sm" variant="secondary" onClick={() => navigate(`/investor/farmers/${f.id}`)}>View Profile</Button>
                   </Card>
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { creditService } from '../../lib/services/credit';
 import { adminService } from '../../lib/services/admin';
 import { paymentsService } from '../../lib/services/payments';
 import { farmsService } from '../../lib/services/farms';
+import { toArray } from '../../lib/api';
 import { BarChart3 } from 'lucide-react';
 import './admin.css';
 
@@ -13,10 +14,10 @@ export default function AdminAnalytics() {
   const schedules = useAsync(() => paymentsService.listSchedules(), []);
   const farms     = useAsync(() => farmsService.list(), []);
 
-  const allApps  = apps.data?.results ?? [];
-  const allUsers = users.data?.results ?? [];
-  const allSched = schedules.data?.results ?? [];
-  const allFarms = farms.data?.results ?? [];
+  const allApps  = toArray(apps.data);
+  const allUsers = toArray(users.data);
+  const allSched = toArray(schedules.data);
+  const allFarms = toArray(farms.data);
 
   const disbursed     = allSched.filter(s=>s.status==='paid').reduce((s,r)=>s+parseFloat(r.amount_paid),0);
   const totalAmtDue   = allSched.reduce((s,r)=>s+parseFloat(r.amount_due),0);

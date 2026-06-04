@@ -1,4 +1,5 @@
 import { PageHeader, Card, Badge, SectionTitle, StatCard } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { paymentsService } from '../../lib/services/payments';
@@ -13,9 +14,9 @@ export default function Portfolio() {
   const agreements = useAsync(() => creditService.listAgreements(), []);
   const schedules  = useAsync(() => paymentsService.listSchedules(), []);
 
-  const ags = agreements.data?.results ?? [];
+  const ags = toArray(agreements.data);
   const totalInvested  = ags.reduce((s,a) => s + parseFloat(a.amount), 0);
-  const totalRecovered = (schedules.data?.results ?? []).filter(s=>s.status==='paid').reduce((s,r) => s + parseFloat(r.amount_paid), 0);
+  const totalRecovered = (toArray(schedules.data)).filter(s=>s.status==='paid').reduce((s,r) => s + parseFloat(r.amount_paid), 0);
   const outstanding    = totalInvested - totalRecovered;
 
   const byType = ags.reduce((acc, a) => { acc[a.credit_type] = (acc[a.credit_type]||0) + parseFloat(a.amount); return acc; }, {} as Record<string,number>);
@@ -82,7 +83,7 @@ export default function Portfolio() {
             : (
               <>
                 {(['pending','paid','overdue','waived'] as const).map(status => {
-                  const count = (schedules.data?.results??[]).filter(s=>s.status===status).length;
+                  const count = (toArray(schedules.data)).filter(s=>s.status===status).length;
                   return count > 0 ? (
                     <div key={status} className="repayment-row">
                       <span style={{textTransform:'capitalize'}}>{status}</span>

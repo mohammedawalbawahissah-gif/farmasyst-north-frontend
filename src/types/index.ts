@@ -1,7 +1,11 @@
 // ── Enums / unions ────────────────────────────────────────────────────────────
 export type UserRole = 'farmer' | 'investor' | 'consumer' | 'admin';
 export type CreditType = 'funding' | 'inputs' | 'training';
-export type FlockType = 'broilers' | 'layers' | 'mixed';
+export type FlockType =
+  | 'broilers' | 'layers'
+  | 'guinea_fowl' | 'turkey' | 'duck' | 'geese' | 'ostrich'
+  | 'day_old_chicks' | 'hatchery' | 'poultry_and_hatchery'
+  | 'meat_processing' | 'mixed';
 
 // ── Pagination wrapper ────────────────────────────────────────────────────────
 export interface Paginated<T> {
@@ -89,7 +93,15 @@ export interface FarmActivityLog {
   id: string;
   farm: string;
   date: string;
-  flock_count: number;
+  broiler_count:       number;
+  layer_count:         number;
+  guinea_fowl_count:   number;
+  turkey_count:        number;
+  duck_count:          number;
+  geese_count:         number;
+  ostrich_count:       number;
+  day_old_chick_count: number;
+  flock_count: number;        // read-only computed: sum of above three
   mortality: number;
   feed_kg: string;
   eggs_collected: number;
@@ -119,10 +131,26 @@ export type ApplicationStatus =
   | 'draft' | 'submitted' | 'under_review' | 'scored'
   | 'matched' | 'approved' | 'disbursed' | 'rejected' | 'withdrawn';
 
+// Backend may return nested User objects or plain ID strings depending on endpoint/role
+export type UserOrId = User | string;
+
+// Helper — safely extract a display name from a nested user or plain string
+export function displayName(val: UserOrId | null | undefined): string {
+  if (!val) return '—';
+  if (typeof val === 'string') return val;
+  return val.full_name || `${val.first_name} ${val.last_name}`.trim() || val.email;
+}
+
+export function userId(val: UserOrId | null | undefined): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  return val.id;
+}
+
 export interface CreditApplication {
   id: string;
   reference: string;
-  farmer: string;
+  farmer: UserOrId;
   farm: string | null;
   credit_type: CreditType;
   amount_requested: string | null;
@@ -131,12 +159,13 @@ export interface CreditApplication {
   input_details: string;
   status: ApplicationStatus;
   credit_score_at_submission: string | null;
-  reviewer: string | null;
+  reviewer: UserOrId | null;
   reviewer_notes: string;
   rejection_reason: string;
   submitted_at: string | null;
   reviewed_at: string | null;
   approved_at: string | null;
+  matched_investor: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -148,8 +177,8 @@ export interface CreditAgreement {
   id: string;
   reference: string;
   application: string;
-  investor: string;
-  farmer: string;
+  investor: UserOrId;
+  farmer: UserOrId;
   credit_type: CreditType;
   amount: string;
   repayment_period_months: number;
@@ -174,7 +203,7 @@ export interface RepaymentSchedule {
   due_date: string;
   amount_due: string;
   amount_paid: string;
-  status: 'pending' | 'paid' | 'overdue' | 'waived';
+  status: 'upcoming' | 'due' | 'pending' | 'paid' | 'overdue' | 'waived';
   paid_at: string | null;
 }
 
@@ -254,4 +283,27 @@ export interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+}
+
+export type DisbursementRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface DisbursementRequest {
+  id: string;
+  reference: string;
+  agreement: string;
+  agreement_reference: string;
+  requested_by: string;
+  requested_by_name: string;
+  reviewed_by: string | null;
+  reviewed_by_name: string | null;
+  farmer_name: string;
+  amount: string;
+  method: string;
+  note: string;
+  status: DisbursementRequestStatus;
+  reviewed_at: string | null;
+  rejection_reason: string;
+  disbursement: string | null;
+  created_at: string;
+  updated_at: string;
 }

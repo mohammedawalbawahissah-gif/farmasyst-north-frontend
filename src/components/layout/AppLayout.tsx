@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import './AppLayout.css';
 
 export default function AppLayout() {
@@ -8,7 +9,9 @@ export default function AppLayout() {
       <Sidebar />
       <main className="app-layout__main">
         <div className="app-layout__content animate-fade-in">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
     </div>

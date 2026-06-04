@@ -5,6 +5,8 @@ export const farmsService = {
   list:   () => api.get<Paginated<Farm>>('/farms/').then(r => r.data),
   get:    (id: string) => api.get<Farm>(`/farms/${id}/`).then(r => r.data),
   create: (data: Partial<Farm>) => api.post<Farm>('/farms/', data).then(r => r.data),
+  createFarmForFarmer: (data: Partial<Farm> & { owner: string }) =>
+    api.post<Farm>('/farms/', data).then(r => r.data),
   update: (id: string, data: Partial<Farm>) => api.patch<Farm>(`/farms/${id}/`, data).then(r => r.data),
   delete: (id: string) => api.delete(`/farms/${id}/`),
 
@@ -19,4 +21,8 @@ export const farmsService = {
   // Audit reports
   listAudits: () => api.get<Paginated<FarmAuditReport>>('/farm-audit-reports/').then(r => r.data),
   getAudit:   (id: string) => api.get<FarmAuditReport>(`/farm-audit-reports/${id}/`).then(r => r.data),
+  createAudit: (data: Partial<FarmAuditReport>) =>
+    api.post<FarmAuditReport>('/farm-audit-reports/', data).then(r => r.data),
+  updateAudit: (id: string, data: Partial<FarmAuditReport>) =>
+    api.patch<FarmAuditReport>(`/farm-audit-reports/${id}/`, data).then(r => r.data),
 };

@@ -1,4 +1,5 @@
 import { PageHeader, Card, SectionTitle, StatCard } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { paymentsService } from '../../lib/services/payments';
@@ -11,9 +12,9 @@ export default function ImpactReports() {
   const schedules  = useAsync(() => paymentsService.listSchedules(), []);
   const farms      = useAsync(() => farmsService.list(), []);
 
-  const ags          = agreements.data?.results ?? [];
-  const allSchedules = schedules.data?.results ?? [];
-  const allFarms     = farms.data?.results ?? [];
+  const ags          = toArray(agreements.data);
+  const allSchedules = toArray(schedules.data);
+  const allFarms     = toArray(farms.data);
 
   const totalDisbursed  = ags.filter(a=>a.status==='active'||a.status==='completed').reduce((s,a)=>s+parseFloat(a.amount),0);
   const totalRepaid     = allSchedules.filter(s=>s.status==='paid').reduce((s,r)=>s+parseFloat(r.amount_paid),0);

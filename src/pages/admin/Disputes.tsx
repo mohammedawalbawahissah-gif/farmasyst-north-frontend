@@ -1,11 +1,13 @@
 import { PageHeader, Card, Badge, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
+import { toArray } from '../../lib/api';
+import { displayName } from '../../types';
 import './admin.css';
 
 export default function AdminDisputes() {
   const agreements = useAsync(() => creditService.listAgreements(), []);
-  const ags = agreements.data?.results ?? [];
+  const ags = toArray(agreements.data);
   const defaulted = ags.filter(a => a.status === 'defaulted');
   const cancelled = ags.filter(a => a.status === 'cancelled');
 
@@ -39,8 +41,8 @@ export default function AdminDisputes() {
                     <td className="data-table__mono">{ag.reference}</td>
                     <td>{ag.credit_type}</td>
                     <td><strong>GHS {parseFloat(ag.amount).toLocaleString()}</strong></td>
-                    <td>{ag.farmer}</td>
-                    <td>{ag.investor}</td>
+                    <td>{displayName(ag.farmer)}</td>
+                    <td>{displayName(ag.investor)}</td>
                     <td className="data-table__muted">{ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GH') : '—'}</td>
                   </tr>
                 ))}

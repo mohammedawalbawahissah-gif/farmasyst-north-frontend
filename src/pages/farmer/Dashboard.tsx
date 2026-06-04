@@ -1,4 +1,5 @@
 import { Tractor, TrendingUp, FileText, BookOpen, AlertCircle } from 'lucide-react';
+import { toArray } from '../../lib/api';
 import { PageHeader, StatCard, Card, Badge, Button, SectionTitle } from '../../components/ui';
 import { useAuth } from '../../lib/auth-context';
 import { useAsync } from '../../lib/hooks/useAsync';
@@ -24,20 +25,22 @@ export default function FarmerDashboard() {
 
   const apps      = useAsync(() => creditService.listApps(), []);
   const farms     = useAsync(() => farmsService.list(), []);
-  const schedules = useAsync(() => paymentsService.listSchedules(), []);
-  const enrols    = useAsync(() => trainingService.listEnrolments(), []);
+  const schedules  = useAsync(() => paymentsService.listSchedules(), []);
+  const enrols     = useAsync(() => trainingService.listEnrolments(), []);
+  const agreements = useAsync(() => creditService.listAgreements(), []);
 
-  const recentApps     = apps.data?.results.slice(0, 5) ?? [];
-  const primaryFarm    = farms.data?.results[0];
-  const dueSchedules   = schedules.data?.results.filter(s => s.status === 'pending') ?? [];
-  const nextDue        = dueSchedules[0] ?? null;
-  const completedMods  = enrols.data?.results.filter(e => e.status === 'completed').length ?? 0;
-  const totalMods      = enrols.data?.results.length ?? 0;
+  const recentApps      = toArray(apps.data).slice(0, 5) ?? [];
+  const primaryFarm     = toArray(farms.data)[0];
+  const dueSchedules    = toArray(schedules.data).filter(s => s.status === 'pending') ?? [];
+  const nextDue         = dueSchedules[0] ?? null;
+  const completedMods   = toArray(enrols.data).filter(e => e.status === 'completed').length ?? 0;
+  const totalMods       = toArray(enrols.data).length;
+  const contractsToSign = toArray(agreements.data).filter(a => a.status === 'pending_signature' && !a.farmer_signed_at);
 
-  const totalDisbursed = schedules.data?.results.reduce(
+  const totalDisbursed = toArray(schedules.data).reduce(
     (sum, s) => sum + parseFloat(s.amount_due), 0,
   ) ?? 0;
-  const totalRepaid = schedules.data?.results.reduce(
+  const totalRepaid = toArray(schedules.data).reduce(
     (sum, s) => sum + parseFloat(s.amount_paid), 0,
   ) ?? 0;
   const repayPct = totalDisbursed > 0 ? Math.round((totalRepaid / totalDisbursed) * 100) : 0;
@@ -63,11 +66,23 @@ export default function FarmerDashboard() {
         </div>
       )}
 
+      {contractsToSign.length > 0 && (
+        <div className="farmer-alert" style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#92400e' }}>
+          <AlertCircle size={16} style={{ color: '#d97706' }} />
+          <span>
+            You have <strong>{contractsToSign.length}</strong> investment agreement{contractsToSign.length > 1 ? 's' : ''} waiting for your signature.
+          </span>
+          <Button size="sm" variant="secondary" onClick={() => window.location.href = '/farmer/contracts'}>
+            Review &amp; Sign
+          </Button>
+        </div>
+      )}
+
       <div className="grid-4" style={{ marginBottom: 'var(--sp-xl)' }}>
         <StatCard
           label="Active Credit"
           value={apps.loading ? '…' : `GHS ${(totalDisbursed - totalRepaid).toLocaleString()}`}
-          sub={`${apps.data?.results.filter(a => a.status === 'disbursed').length ?? 0} active agreements`}
+          sub={`${toArray(apps.data).filter(a => a.status === 'disbursed').length ?? 0} active agreements`}
           icon={<TrendingUp size={16} />}
           accent="#4A7C2F"
         />

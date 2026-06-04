@@ -1,4 +1,5 @@
 import { PageHeader, Card, Button, Badge } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService } from '../../lib/services/notifications';
 import { Bell } from 'lucide-react';
@@ -16,7 +17,7 @@ export default function FarmerNotifications() {
     notifs.refetch();
   };
 
-  const list   = notifs.data?.results ?? [];
+  const list   = toArray(notifs.data);
   const unread = list.filter(n => !n.is_read).length;
 
   return (
@@ -48,7 +49,7 @@ export default function FarmerNotifications() {
                     </span>
                   </div>
                   {!n.is_read && (
-                    <Button size="sm" variant="ghost" onClick={() => handleMarkRead(n.id)}>Dismiss</Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleMarkRead(n.id)}>Dismiss</Button>
                   )}
                 </div>
               </Card>

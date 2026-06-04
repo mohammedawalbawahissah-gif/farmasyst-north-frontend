@@ -1,4 +1,5 @@
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
+import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { trainingService } from '../../lib/services/training';
 import { BookOpen, PlayCircle, FileText, Calendar, Award } from 'lucide-react';
@@ -16,11 +17,11 @@ export default function Training() {
   const modules  = useAsync(() => trainingService.listModules(), []);
   const enrols   = useAsync(() => trainingService.listEnrolments(), []);
 
-  const enrolMap = Object.fromEntries((enrols.data?.results ?? []).map(e => [e.module, e]));
+  const enrolMap = Object.fromEntries((toArray(enrols.data)).map(e => [e.module, e]));
 
-  const completed  = enrols.data?.results.filter(e => e.status === 'completed').length ?? 0;
-  const inProgress = enrols.data?.results.filter(e => e.status === 'in_progress').length ?? 0;
-  const totalMods  = modules.data?.results.length ?? 0;
+  const completed  = toArray(enrols.data).filter(e => e.status === 'completed').length ?? 0;
+  const inProgress = toArray(enrols.data).filter(e => e.status === 'in_progress').length ?? 0;
+  const totalMods  = toArray(modules.data).length;
 
   const handleEnrol = async (moduleId: string) => {
     try { await trainingService.enrol(moduleId); enrols.refetch(); }
@@ -38,7 +39,7 @@ export default function Training() {
 
       <div className="grid-4" style={{ marginBottom: 'var(--sp-xl)' }}>
         <StatCard label="Available Modules" value={totalMods} sub="Curated by FarmAsyst North" icon={<BookOpen size={16}/>} accent="#5C2D8B" />
-        <StatCard label="Enrolled"    value={enrols.data?.results.length ?? 0} sub="Active enrolments" accent="#1A4A6B" />
+        <StatCard label="Enrolled"    value={toArray(enrols.data).length} sub="Active enrolments" accent="#1A4A6B" />
         <StatCard label="In Progress" value={inProgress} sub="Currently active" accent="#E8A020" />
         <StatCard label="Completed"   value={completed}  sub="Modules finished" accent="#4A7C2F" />
       </div>

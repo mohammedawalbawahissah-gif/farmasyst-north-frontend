@@ -33,11 +33,28 @@ export const creditService = {
     });
   },
 
-  // Agreements
+  // Matching
+  matchToInvestor: (appId: string, investorId: string) =>
+    api.post<CreditApplication>(`/credit/applications/${appId}/match/`, { investor: investorId }).then(r => r.data),
+  declineMatch: (appId: string) =>
+    api.post<CreditApplication>(`/credit/applications/${appId}/decline_match/`).then(r => r.data),
+
+  // Investor: list applications matched to them (get_queryset filters to matched_investor=user)
+  listMatchedForInvestor: () =>
+    api.get<CreditApplication[] | { results: CreditApplication[] }>('/credit/applications/').then(r => r.data),
+
   listAgreements: () =>
-    api.get<Paginated<CreditAgreement>>('/credit/agreements/').then(r => r.data),
+    api.get<Paginated<CreditAgreement> | CreditAgreement[]>('/credit/agreements/').then(r => r.data),
   getAgreement: (id: string) =>
     api.get<CreditAgreement>(`/credit/agreements/${id}/`).then(r => r.data),
   signAgreement: (id: string) =>
     api.post<CreditAgreement>(`/credit/agreements/${id}/sign/`).then(r => r.data),
+  generateDocument: (id: string) =>
+    api.post<CreditAgreement>(`/credit/agreements/${id}/generate_document/`).then(r => r.data),
+
+  // Investor accept/decline a matched application
+  acceptMatch: (appId: string) =>
+    api.post<CreditAgreement>(`/credit/applications/${appId}/accept/`).then(r => r.data),
+  declineMatchByInvestor: (appId: string) =>
+    api.post<CreditApplication>(`/credit/applications/${appId}/decline_match/`).then(r => r.data),
 };
