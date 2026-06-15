@@ -1,0 +1,17 @@
+# Exported from Render on 2026-06-15T06:51:41Z
+version: "1"
+services:
+- type: web
+  name: farmasyst-north-frontend
+  runtime: static
+  repo: https://github.com/mohammedawalbawahissah-gif/farmasyst-north-frontend
+  envVars:
+  - key: VITE_API_BASE_URL
+    sync: false
+  buildCommand: npm install; npm run build
+  staticPublishPath: dist
+  routes:
+  - type: rewrite
+    source: /*
+    destination: /index.html
+  autoDeployTrigger: commit
