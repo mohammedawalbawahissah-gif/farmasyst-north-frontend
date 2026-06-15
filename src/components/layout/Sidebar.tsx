@@ -81,7 +81,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
 const ROLE_COLORS: Record<UserRole, string> = {
   farmer:             '#4A7C2F',
   investor:           '#1A4A6B',
-  admin:              '#5C2D8B',
+  admin:              '#3730A3',
   monitoring_officer: '#1A6B5A',
   consumer:           '#8B3A2F',
   vet:                '#0D6E8E',
