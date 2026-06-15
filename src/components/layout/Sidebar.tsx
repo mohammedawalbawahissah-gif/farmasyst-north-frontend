@@ -4,11 +4,12 @@ import {
   Bell, Users, TrendingUp, FileCheck, BarChart3, Settings,
   Store, Package, Star, UserCheck, AlertCircle, Database,
   Banknote, LogOut, ChevronLeft, ChevronRight, ClipboardList,
-  MapPin, ShieldCheck, Stethoscope, Calendar, Pill, AlertTriangle
+  MapPin, ShieldCheck, Stethoscope, Calendar, Pill, AlertTriangle,
+  Menu, X
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import type { UserRole } from '../../types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Sidebar.css';
 
 const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; path: string }[]> = {
@@ -100,14 +101,34 @@ const ROLE_LABELS: Record<UserRole, string> = {
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile drawer on route change (when a link is tapped)
+  const handleNavClick = () => setMobileOpen(false);
+
+  // Close drawer on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Prevent body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   if (!user) return null;
 
   const navItems  = NAV_CONFIG[user.role] ?? [];
   const roleColor = ROLE_COLORS[user.role] ?? '#4A7C2F';
 
-  return (
-    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}
-      style={{ '--role-color': roleColor } as React.CSSProperties}>
+  const sidebarInner = (
+    <aside
+      className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${mobileOpen ? 'sidebar--mobile-open' : ''}`}
+      style={{ '--role-color': roleColor } as React.CSSProperties}
+    >
       <div className="sidebar__logo">
         <div className="sidebar__logo-mark"><span>F</span></div>
         {!collapsed && (
@@ -116,6 +137,10 @@ export default function Sidebar() {
             <span className="sidebar__logo-sub">North</span>
           </div>
         )}
+        {/* Close button — mobile only */}
+        <button className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+          <X size={18} />
+        </button>
       </div>
 
       {!collapsed && (
@@ -130,6 +155,7 @@ export default function Sidebar() {
             end={item.path.split('/').length === 2}
             className={({ isActive }) => `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`}
             title={collapsed ? item.label : undefined}
+            onClick={handleNavClick}
           >
             <item.icon size={18} />
             {!collapsed && <span>{item.label}</span>}
@@ -156,6 +182,7 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* Desktop collapse button */}
       <button
         className="sidebar__collapse-btn"
         onClick={() => setCollapsed(!collapsed)}
@@ -164,5 +191,36 @@ export default function Sidebar() {
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
     </aside>
+  );
+
+  return (
+    <>
+      {/* ── Mobile top bar ── */}
+      <div className="mobile-topbar">
+        <button className="mobile-topbar__hamburger" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+          <Menu size={22} />
+        </button>
+        <div className="mobile-topbar__brand">
+          <div className="mobile-topbar__logo-mark">F</div>
+          <span className="mobile-topbar__name">FarmAsyst North</span>
+        </div>
+        <div className="mobile-topbar__avatar" style={{ background: roleColor }}>
+          {(user.full_name ?? user.first_name ?? '?').charAt(0).toUpperCase()}
+        </div>
+      </div>
+
+      {/* ── Desktop sidebar (always visible ≥769px) ── */}
+      <div className="sidebar-desktop">
+        {sidebarInner}
+      </div>
+
+      {/* ── Mobile drawer overlay ── */}
+      {mobileOpen && (
+        <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} aria-hidden="true" />
+      )}
+      <div className={`sidebar-drawer ${mobileOpen ? 'sidebar-drawer--open' : ''}`}>
+        {sidebarInner}
+      </div>
+    </>
   );
 }

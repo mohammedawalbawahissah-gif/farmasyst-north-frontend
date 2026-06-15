@@ -1,3 +1,6 @@
+/* ══════════════════════════════════════════════════════════════════
+   APP LAYOUT — desktop: sidebar + scrollable main side by side
+   ══════════════════════════════════════════════════════════════════ */
 .app-layout {
   display: flex;
   min-height: 100vh;
@@ -7,6 +10,8 @@
   flex: 1;
   overflow-y: auto;
   background: var(--col-chalk);
+  /* Prevent content from going under the sidebar on desktop */
+  min-width: 0;
 }
 
 .app-layout__content {
@@ -14,8 +19,22 @@
   max-width: 1280px;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE — stack vertically; topbar sits above main content
+   ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .app-layout__main {
+    /* Fills the rest of the screen below the sticky topbar */
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .app-layout__content {
-    padding: var(--sp-lg);
+    padding: var(--sp-md);
   }
 }

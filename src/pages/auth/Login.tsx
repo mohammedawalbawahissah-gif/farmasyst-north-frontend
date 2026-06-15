@@ -6,13 +6,14 @@ import './Login.css';
 
 type Mode = 'login' | 'register' | 'success';
 
-// Monitoring officer and admin are excluded — created by admins only
+// Admin is excluded — created by admins only
 const ROLES = [
-  { value: 'farmer',       label: '🐔 Poultry Farmer',     desc: 'Apply for credit, manage farm, access training' },
-  { value: 'investor',     label: '💼 Investor / Partner', desc: 'Fund farmers, track portfolio, view reports' },
-  { value: 'consumer',     label: '🛒 Consumer / Buyer',   desc: 'Browse and order quality poultry produce' },
-  { value: 'vet',          label: '🩺 Veterinarian',       desc: 'Offer vet services to poultry farmers (admin approval required)' },
-  { value: 'input_dealer', label: '🏪 Farm Input Dealer',  desc: 'Sell feed, vaccines & equipment on the platform (admin approval required)' },
+  { value: 'farmer',             label: '🐔 Poultry Farmer',        desc: 'Apply for credit, manage farm, access training' },
+  { value: 'investor',           label: '💼 Investor / Partner',    desc: 'Fund farmers, track portfolio, view reports' },
+  { value: 'consumer',           label: '🛒 Consumer / Buyer',      desc: 'Browse and order quality poultry produce' },
+  { value: 'monitoring_officer', label: '🔍 Monitoring Officer',    desc: 'Conduct farm audits and submit field reports (admin approval required)' },
+  { value: 'vet',                label: '🩺 Veterinarian',          desc: 'Offer vet services to poultry farmers (admin approval required)' },
+  { value: 'input_dealer',       label: '🏪 Farm Input Dealer',     desc: 'Sell feed, vaccines & equipment on the platform (admin approval required)' },
 ];
 
 function parseApiError(err: unknown): string {
@@ -23,7 +24,6 @@ function parseApiError(err: unknown): string {
     const v = data['non_field_errors'];
     return Array.isArray(v) ? String(v[0]) : String(v);
   }
-  // email duplicate → "user with this email already exists."
   if (data['email']) {
     const v = data['email'];
     return Array.isArray(v) ? String(v[0]) : String(v);
@@ -83,7 +83,6 @@ export default function Login() {
     e.preventDefault();
     if (regBusy) return;
 
-    // Client-side validation first — avoids any network call on obvious errors
     if (!firstName.trim() || !lastName.trim()) { setRegError('Please enter your full name.'); return; }
     if (!regEmail.trim())  { setRegError('Please enter your email address.'); return; }
     if (!phone.trim())     { setRegError('Please enter your phone number.'); return; }
@@ -103,7 +102,6 @@ export default function Login() {
         password: regPass,
         password2: regPass2,
       });
-      // Show the success screen instead of clearing and staying on the form
       setRegDone({ name: firstName.trim(), email: regEmail.trim() });
       setMode('success');
     } catch (err: unknown) {
@@ -264,7 +262,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password strength hint */}
             {regPass.length > 0 && regPass.length < 8 && (
               <p style={{ fontSize: 12, color: '#E8A020', margin: '-8px 0 4px' }}>
                 Password must be at least 8 characters

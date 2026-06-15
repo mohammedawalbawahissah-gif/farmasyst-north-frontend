@@ -1,3 +1,6 @@
+/* ══════════════════════════════════════════════════════════════════
+   SIDEBAR — desktop styles (≥ 769px)
+   ══════════════════════════════════════════════════════════════════ */
 .sidebar {
   width: 240px;
   min-height: 100vh;
@@ -9,9 +12,7 @@
   flex-shrink: 0;
 }
 
-.sidebar--collapsed {
-  width: 64px;
-}
+.sidebar--collapsed { width: 64px; }
 
 /* Logo */
 .sidebar__logo {
@@ -41,6 +42,8 @@
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar__logo-name {
@@ -56,6 +59,20 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* Mobile close button — hidden on desktop */
+.sidebar__mobile-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: rgba(255,255,255,0.7);
+  border-radius: var(--r-sm);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.sidebar__mobile-close:hover { background: rgba(255,255,255,0.1); }
 
 /* Role badge */
 .sidebar__role-badge {
@@ -179,7 +196,7 @@
   color: rgba(255,255,255,0.9);
 }
 
-/* Collapse button */
+/* Desktop collapse button */
 .sidebar__collapse-btn {
   position: absolute;
   top: 50%;
@@ -197,7 +214,132 @@
   transition: background 0.15s;
   z-index: 10;
 }
+.sidebar__collapse-btn:hover { background: var(--col-sprout); }
 
-.sidebar__collapse-btn:hover {
-  background: var(--col-sprout);
+/* ══════════════════════════════════════════════════════════════════
+   DESKTOP WRAPPER — shows sidebar inline
+   ══════════════════════════════════════════════════════════════════ */
+.sidebar-desktop { display: flex; }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE TOP BAR — hidden on desktop
+   ══════════════════════════════════════════════════════════════════ */
+.mobile-topbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: 56px;
+  background: var(--col-earth);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  flex-shrink: 0;
+}
+
+.mobile-topbar__hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: rgba(255,255,255,0.85);
+  border-radius: var(--r-sm);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.mobile-topbar__hamburger:hover { background: rgba(255,255,255,0.1); }
+
+.mobile-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.mobile-topbar__logo-mark {
+  width: 30px;
+  height: 30px;
+  background: var(--col-harvest);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--col-earth);
+}
+
+.mobile-topbar__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--col-white);
+}
+
+.mobile-topbar__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--col-earth);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE DRAWER + OVERLAY — hidden on desktop
+   ══════════════════════════════════════════════════════════════════ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 300;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-drawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 260px;
+  z-index: 400;
+  transform: translateX(-100%);
+  transition: transform 0.28s ease;
+}
+
+.sidebar-drawer .sidebar {
+  width: 260px;
+  min-height: 100%;
+  height: 100%;
+}
+
+/* Hide desktop collapse button inside mobile drawer */
+.sidebar-drawer .sidebar__collapse-btn { display: none; }
+
+.sidebar-drawer--open { transform: translateX(0); }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINT
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Hide desktop sidebar */
+  .sidebar-desktop { display: none; }
+
+  /* Show mobile top bar */
+  .mobile-topbar { display: flex; }
+
+  /* Enable drawer and overlay */
+  .sidebar-overlay { display: block; }
+  .sidebar-drawer  { display: block; }
+
+  /* Show close button inside drawer */
+  .sidebar__mobile-close { display: flex; }
 }
