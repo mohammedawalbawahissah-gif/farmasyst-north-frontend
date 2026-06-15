@@ -4,6 +4,7 @@ import { PageHeader, Card, Button, SectionTitle, Badge } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
 import { toArray } from '../../lib/api';
+import type { Farm, FarmAuditReport } from '../../types';
 import '../admin/admin.css';
 import '../farmer/farmer.css';
 
@@ -55,15 +56,15 @@ export default function SubmitReport() {
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
-  // Pre-select farm if navigated from "Audit" button
   useEffect(() => {
     const farmId = searchParams.get('farm');
     if (farmId) setForm(f => ({ ...f, farm: farmId }));
   }, [searchParams]);
 
-  const allFarms  = toArray(farms.data);
-  const allAudits = toArray(audits.data).sort(
-    (a, b) => new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime()
+  const allFarms  = toArray<Farm>(farms.data);
+  const allAudits = toArray<FarmAuditReport>(audits.data).sort(
+    (a: FarmAuditReport, b: FarmAuditReport) =>
+      new Date(b.visit_date).getTime() - new Date(a.visit_date).getTime()
   ).slice(0, 10);
 
   const set = <K extends keyof ReportForm>(k: K, v: ReportForm[K]) =>
@@ -91,7 +92,7 @@ export default function SubmitReport() {
       if (form.report_document) fd.append('report_document', form.report_document);
 
       await farmsService.createAudit(fd as never);
-      const farmName = allFarms.find(f => f.id === form.farm)?.name ?? 'farm';
+      const farmName = allFarms.find((f: Farm) => f.id === form.farm)?.name ?? 'farm';
       setSuccess(`Report for ${farmName} submitted successfully.`);
       setForm(EMPTY);
       audits.refetch();
@@ -102,7 +103,7 @@ export default function SubmitReport() {
     }
   };
 
-  const selectedFarm = allFarms.find(f => f.id === form.farm);
+  const selectedFarm = allFarms.find((f: Farm) => f.id === form.farm);
 
   return (
     <div>
@@ -123,13 +124,12 @@ export default function SubmitReport() {
               <label>Farm <span className="required">*</span></label>
               <select value={form.farm} onChange={e => set('farm', e.target.value)}>
                 <option value="">— Select a farm —</option>
-                {allFarms.map(f => (
+                {allFarms.map((f: Farm) => (
                   <option key={f.id} value={f.id}>{f.name} — {f.district}, {f.region}</option>
                 ))}
               </select>
             </div>
 
-            {/* Farm quick-info if selected */}
             {selectedFarm && (
               <div style={{ background: '#f0f7f0', border: '1px solid #c8e6c9', borderRadius: 8, padding: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', fontSize: 13, display: 'flex', gap: 'var(--sp-lg)', flexWrap: 'wrap' }}>
                 <span>🐔 {selectedFarm.flock_type?.replace(/_/g, ' ')} · <strong>{selectedFarm.flock_size?.toLocaleString()} birds</strong></span>
@@ -167,7 +167,6 @@ export default function SubmitReport() {
               )}
             </div>
 
-            {/* Score inputs */}
             <div style={{ background: '#f8f7f4', borderRadius: 8, padding: 'var(--sp-md)', marginBottom: 'var(--sp-md)' }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 'var(--sp-sm)' }}>
                 Scores <span className="required">*</span>
@@ -222,9 +221,9 @@ export default function SubmitReport() {
                   <tr><th>Farm</th><th>Date</th><th>Outcome</th><th>Infra</th><th>Mgmt</th><th>Bio</th></tr>
                 </thead>
                 <tbody>
-                  {allAudits.map(r => (
+                  {allAudits.map((r: FarmAuditReport) => (
                     <tr key={r.id}>
-                      <td><strong>{r.farm_name ?? r.farm}</strong></td>
+                      <td><strong>{r.farm}</strong></td>
                       <td className="data-table__mono" style={{ fontSize: 12 }}>
                         {new Date(r.visit_date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
