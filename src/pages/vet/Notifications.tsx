@@ -2,13 +2,14 @@ import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService } from '../../lib/services/notifications';
+import type { Notification } from '../../types';
 import { Bell } from 'lucide-react';
 import '../farmer/farmer.css';
 
 export default function VetNotifications() {
   const notifs = useAsync(() => notificationsService.list(), []);
-  const list   = toArray(notifs.data);
-  const unread = list.filter(n => !n.is_read).length;
+  const list   = toArray<Notification>(notifs.data);
+  const unread = list.filter((n: Notification) => !n.is_read).length;
   const handleMarkAll = async () => { await notificationsService.markAllRead(); notifs.refetch(); };
   const handleRead    = async (id: string) => { await notificationsService.markRead(id); notifs.refetch(); };
 
@@ -19,7 +20,7 @@ export default function VetNotifications() {
       {notifs.loading ? <p style={{color:'var(--col-muted)'}}>Loading…</p>
       : list.length === 0 ? (
         <Card style={{textAlign:'center',padding:'3rem'}}><Bell size={32} style={{opacity:.3,marginBottom:'1rem'}}/><p style={{color:'var(--col-muted)'}}>No notifications yet.</p></Card>
-      ) : list.map(n => (
+      ) : list.map((n: Notification) => (
         <Card key={n.id} style={{marginBottom:'var(--sp-sm)',opacity:n.is_read?.65:1,borderLeft:n.is_read?undefined:'3px solid var(--col-primary)'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'var(--sp-md)'}}>
             <div style={{flex:1}}>

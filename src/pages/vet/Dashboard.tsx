@@ -4,6 +4,7 @@ import { toArray } from '../../lib/api';
 import { PageHeader, Card, Badge, StatCard, SectionTitle } from '../../components/ui';
 import { Stethoscope, Calendar, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
+import type { VetBooking, VetService } from '../../types';
 import '../farmer/farmer.css';
 
 export default function VetDashboard() {
@@ -11,12 +12,12 @@ export default function VetDashboard() {
   const bookings = useAsync(() => vetService.listMyBookings(), []);
   const services = useAsync(() => vetService.listMyServices(), []);
 
-  const allBookings = toArray(bookings.data);
-  const allServices = toArray(services.data);
+  const allBookings = toArray<VetBooking>(bookings.data);
+  const allServices = toArray<VetService>(services.data);
 
-  const pending   = allBookings.filter(b => b.status === 'pending').length;
-  const confirmed = allBookings.filter(b => b.status === 'confirmed').length;
-  const completed = allBookings.filter(b => b.status === 'completed').length;
+  const pending   = allBookings.filter((b: VetBooking) => b.status === 'pending').length;
+  const confirmed = allBookings.filter((b: VetBooking) => b.status === 'confirmed').length;
+  const completed = allBookings.filter((b: VetBooking) => b.status === 'completed').length;
   const recent    = allBookings.slice(0, 5);
 
   const STATUS_BADGE: Record<string, 'warning'|'info'|'success'|'danger'> = {
@@ -31,10 +32,10 @@ export default function VetDashboard() {
       />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'var(--sp-md)', marginBottom:'var(--sp-lg)' }}>
-        <StatCard label="Pending Bookings"  value={pending}           icon={<Clock size={20}/>} color="var(--col-warning)" />
-        <StatCard label="Confirmed Today"   value={confirmed}         icon={<Calendar size={20}/>} color="var(--col-primary)" />
-        <StatCard label="Completed Total"   value={completed}         icon={<CheckCircle size={20}/>} color="var(--col-success)" />
-        <StatCard label="Active Services"   value={allServices.length} icon={<Stethoscope size={20}/>} color="#7C3AED" />
+        <StatCard label="Pending Bookings"  value={pending}            icon={<Clock size={20}/>} accent="var(--col-warning)" />
+        <StatCard label="Confirmed Today"   value={confirmed}          icon={<Calendar size={20}/>} accent="var(--col-primary)" />
+        <StatCard label="Completed Total"   value={completed}          icon={<CheckCircle size={20}/>} accent="var(--col-success)" />
+        <StatCard label="Active Services"   value={allServices.length} icon={<Stethoscope size={20}/>} accent="#7C3AED" />
       </div>
 
       <SectionTitle>Recent Bookings</SectionTitle>
@@ -47,7 +48,7 @@ export default function VetDashboard() {
         </Card>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-sm)' }}>
-          {recent.map(b => (
+          {recent.map((b: VetBooking) => (
             <Card key={b.id}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                 <div>
