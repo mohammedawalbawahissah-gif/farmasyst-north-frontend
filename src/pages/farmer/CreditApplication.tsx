@@ -4,7 +4,7 @@ import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { farmsService } from '../../lib/services/farms';
-import type { CreditType } from '../../types';
+import type { CreditType, Farm, CreditApplication as CreditApp } from '../../types';
 import './farmer.css';
 
 type Step = 1 | 2 | 3 | 4;
@@ -44,11 +44,11 @@ export default function CreditApplication() {
     if (!creditType) return;
     setSaving(true); setError('');
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         credit_type: creditType,
         purpose,
         ...(farmId && { farm: farmId }),
-        ...(amount && { amount_requested: parseFloat(amount) }),
+        ...(amount && { amount_requested: String(parseFloat(amount)) }),
         ...(months && { repayment_period_months: parseInt(months) }),
         ...(creditType === 'inputs' && { input_details: inputDetails }),
       };
@@ -56,7 +56,7 @@ export default function CreditApplication() {
       if (draftId) {
         app = await creditService.updateApp(draftId, payload);
       } else {
-        app = await creditService.createApp({ credit_type: creditType, purpose, ...payload });
+        app = await creditService.createApp(payload as never);
         setDraftId(app.id);
       }
       return app;
@@ -163,12 +163,12 @@ export default function CreditApplication() {
           <div className="app-step">
             <h3>Application details</h3>
 
-            {toArray(farms.data).length > 0 && (
+            {toArray<Farm>(farms.data).length > 0 && (
               <div className="form-field">
                 <label>Select farm (optional)</label>
                 <select value={farmId} onChange={e => setFarmId(e.target.value)}>
                   <option value="">— No specific farm —</option>
-                  {toArray(farms.data).map(f => (
+                  {toArray<Farm>(farms.data).map(f => (
                     <option key={f.id} value={f.id}>{f.name} · {f.district}</option>
                   ))}
                 </select>
@@ -281,7 +281,7 @@ export default function CreditApplication() {
       </Card>
 
       {/* Previous applications */}
-      {toArray(apps.data).length > 0 && (
+      {toArray<CreditApp>(apps.data).length > 0 && (
         <div style={{ marginTop: '2.5rem' }}>
           <h3 style={{ marginBottom: '1rem' }}>Your Previous Applications</h3>
           <Card>
@@ -290,7 +290,7 @@ export default function CreditApplication() {
                 <tr><th>Reference</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr>
               </thead>
               <tbody>
-                {toArray(apps.data).slice(0, 8).map(app => (
+                {toArray<CreditApp>(apps.data).slice(0, 8).map(app => (
                   <tr key={app.id}>
                     <td className="data-table__mono">{app.reference}</td>
                     <td>{app.credit_type}</td>

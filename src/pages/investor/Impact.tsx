@@ -5,6 +5,7 @@ import { creditService } from '../../lib/services/credit';
 import { paymentsService } from '../../lib/services/payments';
 import { farmsService } from '../../lib/services/farms';
 import { BarChart3 } from 'lucide-react';
+import type { CreditAgreement, RepaymentSchedule, Farm } from '../../types';
 import './investor.css';
 
 export default function ImpactReports() {
@@ -12,9 +13,9 @@ export default function ImpactReports() {
   const schedules  = useAsync(() => paymentsService.listSchedules(), []);
   const farms      = useAsync(() => farmsService.list(), []);
 
-  const ags          = toArray(agreements.data);
-  const allSchedules = toArray(schedules.data);
-  const allFarms     = toArray(farms.data);
+  const ags          = toArray<CreditAgreement>(agreements.data);
+  const allSchedules = toArray<RepaymentSchedule>(schedules.data);
+  const allFarms     = toArray<Farm>(farms.data);
 
   const totalDisbursed  = ags.filter(a=>a.status==='active'||a.status==='completed').reduce((s,a)=>s+parseFloat(a.amount),0);
   const totalRepaid     = allSchedules.filter(s=>s.status==='paid').reduce((s,r)=>s+parseFloat(r.amount_paid),0);

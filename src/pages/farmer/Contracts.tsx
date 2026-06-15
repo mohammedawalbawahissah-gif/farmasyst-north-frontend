@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { toArray } from '../../lib/api';
+import type { CreditAgreement } from '../../types';
 import { FileCheck, Clock, CheckCircle, AlertCircle, Download, PenLine } from 'lucide-react';
 import './farmer.css';
 
@@ -34,9 +35,8 @@ export default function FarmerContracts() {
     }
   };
 
-  const ags            = toArray(agreements.data);
+  const ags            = toArray<CreditAgreement>(agreements.data);
   const needsMySign    = ags.filter(a => a.status === 'pending_signature' && !a.farmer_signed_at);
-  const otherContracts = ags.filter(a => !(a.status === 'pending_signature' && !a.farmer_signed_at));
 
   return (
     <div>

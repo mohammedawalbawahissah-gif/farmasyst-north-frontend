@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Farm } from '../../types';
 import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
@@ -22,10 +23,10 @@ export default function AdminMatching() {
   const [msg,          setMsg]        = useState('');
   const [msgType,      setMsgType]    = useState<'success'|'error'>('success');
 
-  const allApps       = toArray(apps.data);
-  const allAgreements = toArray(agreements.data);
-  const allInvestors  = toArray(investors.data);
-  const farmMap       = Object.fromEntries(toArray(farms.data).map(f => [userId(f.owner), f]));
+  const allApps       = toArray<any>(apps.data);
+  const allAgreements = toArray<any>(agreements.data);
+  const allInvestors  = toArray<any>(investors.data);
+  const farmMap       = Object.fromEntries(toArray<Farm>(farms.data).map(f => [userId(f.owner), f]));
 
   // Real flow: approved (ready to assign) → agreement pending_signature → active → disbursed
   const readyToMatch   = allApps.filter(a => a.status === 'approved');

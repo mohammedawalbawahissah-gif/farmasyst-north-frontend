@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
+import type { CreditAgreement, DisbursementRequest } from '../../types';
 import { paymentsService } from '../../lib/services/payments';
 import './investor.css';
 
@@ -67,8 +68,8 @@ export default function Contracts() {
     finally { setRequesting(null); }
   };
 
-  const ags    = toArray(agreements.data);
-  const drList = toArray(disbReqs.data);
+  const ags    = toArray<CreditAgreement>(agreements.data);
+  const drList = toArray<DisbursementRequest>(disbReqs.data);
   const drByAgreement = Object.fromEntries(drList.map(d => [d.agreement, d]));
 
   const pending      = ags.filter(a => a.status === 'pending_signature' && !a.investor_signed_at);

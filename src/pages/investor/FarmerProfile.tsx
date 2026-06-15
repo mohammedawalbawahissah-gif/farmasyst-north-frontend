@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm } from '../../types';
 import { toArray } from '../../lib/api';
 import { ArrowLeft } from 'lucide-react';
 import { displayName, userId } from '../../types';
@@ -29,7 +30,7 @@ export default function FarmerProfilePage() {
   const initials = name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
 
   // Find this farmer's farms
-  const farmerFarms = toArray(farms.data).filter(f => userId(f.owner as any) === userId(p.user));
+  const farmerFarms = toArray<Farm>(farms.data).filter(f => userId(f.owner as any) === userId(p.user));
 
   return (
     <div>

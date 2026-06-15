@@ -6,6 +6,7 @@ import { PageHeader, StatCard, Card, Button, SectionTitle, Badge } from '../../c
 import { useAuth } from '../../lib/auth-context';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
+import type { CreditAgreement, Farm } from '../../types';
 import { farmsService } from '../../lib/services/farms';
 import { adminService } from '../../lib/services/admin';
 import { displayName, userId } from '../../types';
@@ -20,9 +21,8 @@ export default function InvestorDashboard() {
   const profiles   = useAsync(() => adminService.listFarmerProfiles(), []);
   const [selectedFarm, setSelectedFarm] = useState<any>(null);
 
-  const ags           = toArray(agreements.data);
-  const allFarms      = toArray(farms.data);
-  const allProfiles   = toArray(profiles.data);
+  const ags           = toArray<CreditAgreement>(agreements.data);
+  const allProfiles   = toArray<any>(profiles.data);
   const active        = ags.filter(a => a.status === 'active');
   const totalAmt      = ags.reduce((s, a) => s + parseFloat(a.amount), 0);
   const uniqueFarmers = new Set(ags.map(a => a.farmer)).size;
@@ -56,11 +56,11 @@ export default function InvestorDashboard() {
           <SectionTitle>Matched Farmers</SectionTitle>
           {farms.loading
             ? <p style={{color:'var(--col-muted)'}}>Loading…</p>
-            : (toArray(farms.data).length) === 0
+            : (toArray<Farm>(farms.data).length) === 0
             ? <Card><p style={{padding:'var(--sp-md)',color:'var(--col-muted)'}}>No farmer profiles available yet.</p></Card>
             : (
               <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-sm)' }}>
-                {farms.data!.results.slice(0,5).map(f => (
+                {toArray<Farm>(farms.data).slice(0,5).map(f => (
                   <Card key={f.id} className="farmer-match-card">
                     <div className="farmer-match-card__avatar">{f.name.charAt(0)}</div>
                     <div className="farmer-match-card__info">

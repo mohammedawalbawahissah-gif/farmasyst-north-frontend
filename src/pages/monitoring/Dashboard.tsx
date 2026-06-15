@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm, FarmAuditReport } from '../../types';
 import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
-import { ClipboardList, MapPin, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import '../admin/admin.css';
 
 const OUTCOME_BADGE: Record<string, 'success' | 'warning' | 'danger'> = {
@@ -19,9 +20,9 @@ export default function MODashboard() {
   const audits    = useAsync(() => farmsService.listAudits(), []);
   const profiles  = useAsync(() => adminService.listFarmerProfiles(), []);
 
-  const allFarms   = toArray(farms.data);
-  const allAudits  = toArray(audits.data);
-  const allProfiles = toArray(profiles.data);
+  const allFarms   = toArray<Farm>(farms.data);
+  const allAudits  = toArray<FarmAuditReport>(audits.data);
+  const allProfiles = toArray<any>(profiles.data);
 
   // Officer's own reports
   const myAudits = allAudits.filter(a => a.auditor === user?.id);

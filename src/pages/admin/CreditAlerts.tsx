@@ -12,7 +12,7 @@ const PRIORITY_BADGE: Record<string,'danger'|'warning'|'info'|'neutral'> = {
 
 export default function AdminCreditAlerts() {
   const alerts = useAsync(() => notificationsService.listCreditAlerts(), []);
-  const all    = toArray(alerts.data);
+  const all    = toArray<any>(alerts.data);
 
   const unread   = all.filter(n => !n.is_read).length;
   const urgent   = all.filter(n => n.priority === 'urgent').length;
@@ -65,9 +65,9 @@ export default function AdminCreditAlerts() {
       {error   && <div style={{ background:'var(--col-danger-bg)',  color:'var(--col-danger)',  padding:'var(--sp-sm) var(--sp-md)', borderRadius:8, marginBottom:'var(--sp-md)', fontSize:13 }}>{error}</div>}
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:'var(--sp-md)', marginBottom:'var(--sp-lg)' }}>
-        <StatCard label="Total Alerts"  value={all.length} icon={<Bell size={20}/>}    color="var(--col-primary)" />
-        <StatCard label="Unread"        value={unread}     icon={<Bell size={20}/>}    color="var(--col-warning)" />
-        <StatCard label="Urgent"        value={urgent}     icon={<Bell size={20}/>}    color="var(--col-danger)" />
+        <StatCard label="Total Alerts"  value={all.length} icon={<Bell size={20}/>}     />
+        <StatCard label="Unread"        value={unread}     icon={<Bell size={20}/>}     />
+        <StatCard label="Urgent"        value={urgent}     icon={<Bell size={20}/>}     />
       </div>
 
       {/* Workflow timeline toggle */}

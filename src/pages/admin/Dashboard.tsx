@@ -21,10 +21,10 @@ export default function AdminDashboard() {
   const notifs   = useAsync(() => notificationsService.list(), []);
   const disbReqs = useAsync(() => paymentsService.listDisbursementRequests(), []);
 
-  const allUsers  = toArray(users.data);
-  const allApps   = toArray(apps.data);
-  const allNotifs = toArray(notifs.data);
-  const allDisbReqs = toArray(disbReqs.data);
+  const allUsers  = toArray<any>(users.data);
+  const allApps   = toArray<any>(apps.data);
+  const allNotifs = toArray<any>(notifs.data);
+  const allDisbReqs = toArray<any>(disbReqs.data);
 
   const pending         = allApps.filter(a => ['submitted', 'under_review', 'scored'].includes(a.status));
   const pendingDisbReqs = allDisbReqs.filter(r => r.status === 'pending');

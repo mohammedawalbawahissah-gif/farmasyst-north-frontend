@@ -5,6 +5,7 @@ import { adminService } from '../../lib/services/admin';
 import { paymentsService } from '../../lib/services/payments';
 import { farmsService } from '../../lib/services/farms';
 import { toArray } from '../../lib/api';
+import type { Farm } from '../../types';
 import { BarChart3 } from 'lucide-react';
 import './admin.css';
 
@@ -14,18 +15,18 @@ export default function AdminAnalytics() {
   const schedules = useAsync(() => paymentsService.listSchedules(), []);
   const farms     = useAsync(() => farmsService.list(), []);
 
-  const allApps  = toArray(apps.data);
-  const allUsers = toArray(users.data);
-  const allSched = toArray(schedules.data);
-  const allFarms = toArray(farms.data);
+  const allApps  = toArray<any>(apps.data);
+  const allUsers = toArray<any>(users.data);
+  const allSched = toArray<any>(schedules.data);
+  const allFarms = toArray<Farm>(farms.data);
 
   const disbursed     = allSched.filter(s=>s.status==='paid').reduce((s,r)=>s+parseFloat(r.amount_paid),0);
   const totalAmtDue   = allSched.reduce((s,r)=>s+parseFloat(r.amount_due),0);
   const repayRate     = totalAmtDue > 0 ? Math.round((disbursed/totalAmtDue)*100) : 0;
   const totalBirds    = allFarms.reduce((s,f)=>s+f.flock_size,0);
 
-  const appsByType = allApps.reduce((acc,a)=>{acc[a.credit_type]=(acc[a.credit_type]||0)+1;return acc;},{} as Record<string,number>);
-  const appsByStatus = allApps.reduce((acc,a)=>{acc[a.status]=(acc[a.status]||0)+1;return acc;},{} as Record<string,number>);
+  const appsByType   = allApps.reduce<Record<string,number>>((acc,a)=>{acc[a.credit_type]=(acc[a.credit_type]||0)+1;return acc;},{});
+  const appsByStatus = allApps.reduce<Record<string,number>>((acc,a)=>{acc[a.status]=(acc[a.status]||0)+1;return acc;},{});
 
   return (
     <div>

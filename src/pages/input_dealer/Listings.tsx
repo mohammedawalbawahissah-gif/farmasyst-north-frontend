@@ -4,6 +4,7 @@ import { useAsync } from '../../lib/hooks/useAsync';
 import { inputDealerService } from '../../lib/services/inputDealer';
 import { toArray } from '../../lib/api';
 import { Plus, Pencil, Trash2, ImagePlus } from 'lucide-react';
+import type { FarmInput } from '../../types';
 import '../farmer/farmer.css';
 
 const INPUT_TYPES = [
@@ -20,7 +21,7 @@ const REGIONS = ['Greater Accra','Ashanti','Northern','Upper East','Upper West',
 
 export default function InputDealerListings() {
   const listings = useAsync(() => inputDealerService.listMyListings(), []);
-  const all = toArray(listings.data);
+  const all = toArray<FarmInput>(listings.data);
 
   const photoRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm]   = useState(false);

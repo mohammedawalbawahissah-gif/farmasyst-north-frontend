@@ -3,6 +3,7 @@ import { toArray } from '../../lib/api';
 import { PageHeader, Card, Button, SectionTitle, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm, FarmActivityLog } from '../../types';
 import './farmer.css';
 
 // Which flock categories are relevant per farm type
@@ -24,7 +25,7 @@ export default function FarmManager() {
   const farms = useAsync(() => farmsService.list(), []);
   const [selectedFarm, setSelectedFarm] = useState('');
 
-  const farmId = selectedFarm || (toArray(farms.data)[0]?.id ?? '');
+  const farmId = selectedFarm || (toArray<Farm>(farms.data)[0]?.id ?? '');
   const logs = useAsync(
     () => farmId ? farmsService.listLogs(farmId) : Promise.resolve(null),
     [farmId],
@@ -63,7 +64,7 @@ export default function FarmManager() {
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
-  const farmList   = toArray(farms.data);
+  const farmList   = toArray<Farm>(farms.data);
   const activeFarm = farmList.find(f => f.id === farmId);
   const ft         = activeFarm?.flock_type ?? 'mixed';
 
@@ -371,7 +372,7 @@ export default function FarmManager() {
             <Card>
               {logs.loading ? (
                 <p style={{ padding: 'var(--sp-md)', color: 'var(--col-muted)' }}>Loading logs…</p>
-              ) : toArray(logs.data).length === 0 ? (
+              ) : toArray<FarmActivityLog>(logs.data).length === 0 ? (
                 <p style={{ padding: 'var(--sp-md)', color: 'var(--col-muted)' }}>No logs yet. Start logging daily activity above.</p>
               ) : showProcessingSection ? (
                 <table className="data-table">
@@ -386,7 +387,7 @@ export default function FarmManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {toArray(logs.data).slice(0, 14).map(log => (
+                    {toArray<FarmActivityLog>(logs.data).slice(0, 14).map(log => (
                       <tr key={log.id}>
                         <td className="data-table__mono">{new Date(log.date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</td>
                         <td>{(log as any).birds_received ?? 0}</td>
@@ -411,7 +412,7 @@ export default function FarmManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {toArray(logs.data).slice(0, 14).map(log => (
+                    {toArray<FarmActivityLog>(logs.data).slice(0, 14).map(log => (
                       <tr key={log.id}>
                         <td className="data-table__mono">{new Date(log.date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</td>
                         <td>{(log as any).eggs_in_incubation ?? 0}</td>
@@ -444,19 +445,19 @@ export default function FarmManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {toArray(logs.data).slice(0, 14).map(log => (
+                    {toArray<FarmActivityLog>(logs.data).slice(0, 14).map(log => (
                       <tr key={log.id}>
                         <td className="data-table__mono">
                           {new Date(log.date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}
                         </td>
-                        {showBroilers     && <td>{log.broiler_count.toLocaleString()}</td>}
-                        {showLayers       && <td>{log.layer_count.toLocaleString()}</td>}
-                        {showGuineaFowl   && <td>{log.guinea_fowl_count.toLocaleString()}</td>}
-                        {showTurkey       && <td>{log.turkey_count.toLocaleString()}</td>}
-                        {showDuck         && <td>{log.duck_count.toLocaleString()}</td>}
-                        {showGeese        && <td>{log.geese_count.toLocaleString()}</td>}
-                        {showOstrich      && <td>{log.ostrich_count.toLocaleString()}</td>}
-                        {showDayOldChicks && <td>{log.day_old_chick_count.toLocaleString()}</td>}
+                        {showBroilers     && <td>{(log.broiler_count ?? 0).toLocaleString()}</td>}
+                        {showLayers       && <td>{(log.layer_count ?? 0).toLocaleString()}</td>}
+                        {showGuineaFowl   && <td>{(log.guinea_fowl_count ?? 0).toLocaleString()}</td>}
+                        {showTurkey       && <td>{(log.turkey_count ?? 0).toLocaleString()}</td>}
+                        {showDuck         && <td>{(log.duck_count ?? 0).toLocaleString()}</td>}
+                        {showGeese        && <td>{(log.geese_count ?? 0).toLocaleString()}</td>}
+                        {showOstrich      && <td>{(log.ostrich_count ?? 0).toLocaleString()}</td>}
+                        {showDayOldChicks && <td>{(log.day_old_chick_count ?? 0).toLocaleString()}</td>}
                         <td><strong>{log.flock_count.toLocaleString()}</strong></td>
                         <td>
                           <span style={{ color: log.mortality > 0 ? 'var(--col-danger)' : 'inherit' }}>

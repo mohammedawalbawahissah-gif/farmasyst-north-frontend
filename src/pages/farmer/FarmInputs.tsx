@@ -4,6 +4,7 @@ import { useAsync } from '../../lib/hooks/useAsync';
 import { inputDealerService } from '../../lib/services/inputDealer';
 import { toArray } from '../../lib/api';
 import { Package, Phone, MapPin } from 'lucide-react';
+import type { FarmInput } from '../../types';
 import './farmer.css';
 
 const INPUT_TYPES = [
@@ -22,7 +23,7 @@ export default function FarmerFarmInputs() {
   const [typeFilter, setTypeFilter] = useState('');
   const [search, setSearch]         = useState('');
 
-  const all = toArray(inputs.data);
+  const all = toArray<FarmInput>(inputs.data);
   const shown = all.filter(l =>
     l.is_available &&
     (typeFilter === '' || l.input_type === typeFilter) &&
@@ -61,7 +62,7 @@ export default function FarmerFarmInputs() {
               {l.photo && <img src={l.photo} alt={l.name} style={{ width:'100%', height:140, objectFit:'cover', borderRadius:6, marginBottom:8 }} />}
               <div style={{ flex:1 }}>
                 <strong style={{ fontSize:14 }}>{l.name}</strong>
-                <Badge variant="neutral" style={{ marginLeft:6 }}>{INPUT_LABEL[l.input_type] ?? l.input_type}</Badge>
+                <Badge variant="neutral">{INPUT_LABEL[l.input_type] ?? l.input_type}</Badge>
                 {l.brand && <p style={{ fontSize:12, color:'var(--col-muted)', margin:'4px 0 2px' }}>Brand: {l.brand}</p>}
                 <p style={{ fontSize:14, fontWeight:600, margin:'4px 0' }}>GHS {l.price} / {l.unit}</p>
                 {l.description && <p style={{ fontSize:13, color:'var(--col-muted)', margin:'0 0 4px' }}>{l.description}</p>}

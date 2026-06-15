@@ -118,10 +118,20 @@ export interface FarmActivityLog {
   flock_count: number; mortality: number; feed_kg: string;
   eggs_collected: number; medication_given: string; notes: string;
   logged_by: string | null; created_at: string;
+  // Poultry flock counts (dynamic per farm type)
+  broiler_count?: number; layer_count?: number; guinea_fowl_count?: number;
+  turkey_count?: number; duck_count?: number; geese_count?: number;
+  ostrich_count?: number; day_old_chick_count?: number;
+  // Hatchery fields
+  eggs_in_incubation?: number; eggs_set_today?: number; chicks_hatched?: number;
+  hatch_rejects?: number; chicks_sold?: number;
+  // Meat processing fields
+  birds_received?: number; birds_processed?: number; carcass_weight_kg?: number;
+  units_packaged?: number; cold_storage_units?: number;
 }
 
 export interface FarmAuditReport {
-  id: string; farm: string; auditor: string | null; visit_date: string;
+  id: string; farm: string; farm_name?: string; auditor: string | null; auditor_name?: string; visit_date: string;
   outcome: 'satisfactory' | 'concerns' | 'unsatisfactory';
   flock_verified: number;
   infrastructure_score: number; management_score: number; biosecurity_score: number;
@@ -218,21 +228,37 @@ export interface TrainingEnrolment {
 // ── Marketplace ───────────────────────────────────────────────────────────────
 export interface Produce {
   id: string; seller: string; farm: string; name: string;
-  produce_type: 'broiler' | 'layer' | 'eggs' | 'day_old' | 'other';
+  produce_type: 'broiler' | 'layer' | 'eggs' | 'day_old' | 'other' | string;
   quantity: number; quantity_available?: number; unit: string; price: string;
   description: string; status: 'active' | 'sold_out' | 'paused' | 'removed';
   is_organic: boolean;
   egg_size: 'small' | 'medium' | 'large' | 'extra_large' | null;
   accepts_instant_payment: boolean; accepts_cash_on_delivery: boolean;
   avg_rating: string; farm_name: string; farm_region: string; created_at: string;
+  // Extended fields returned by backend
+  photo?: string | null;
+  contact_phone?: string | null;
+  accepts_momo?: boolean;
+  accepts_card?: boolean;
+  accepts_bank_transfer?: boolean;
+  accepts_cod?: boolean;
+}
+
+export interface OrderItem {
+  id: string; produce: string; produce_name: string;
+  quantity: number; unit_price: string;
 }
 
 export interface Order {
-  id: string; buyer: string; produce?: string; produce_name?: string;
+  id: string; buyer: string; buyer_name?: string;
+  reference?: string;
+  produce?: string; produce_name?: string;
   quantity?: number; unit?: string;
+  items?: OrderItem[];
   status: 'pending' | 'confirmed' | 'dispatched' | 'delivered' | 'cancelled';
   delivery_type: 'pickup' | 'delivery'; delivery_address: string;
-  total_amount: string; payment_method: 'instant' | 'cash_on_delivery';
+  total_amount: string;
+  payment_method: 'instant' | 'cash_on_delivery' | 'momo' | 'card' | 'bank_transfer' | string;
   payment_status: 'unpaid' | 'paid' | 'refunded';
   notes: string; created_at: string;
 }

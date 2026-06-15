@@ -43,7 +43,7 @@ export default function AdminTraining() {
     finally { setSaving(false); }
   };
 
-  const mods = toArray(modules.data);
+  const mods = toArray<any>(modules.data);
 
   return (
     <div>

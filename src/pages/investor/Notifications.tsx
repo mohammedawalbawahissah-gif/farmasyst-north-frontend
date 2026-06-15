@@ -3,11 +3,12 @@ import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService } from '../../lib/services/notifications';
 import { Bell } from 'lucide-react';
+import type { Notification } from '../../types';
 import '../farmer/farmer.css';
 
 export default function InvestorNotifications() {
   const notifs = useAsync(() => notificationsService.list(), []);
-  const list   = toArray(notifs.data);
+  const list   = toArray<Notification>(notifs.data);
   const unread = list.filter(n => !n.is_read).length;
 
   const handleMarkAll = async () => { await notificationsService.markAllRead(); notifs.refetch(); };

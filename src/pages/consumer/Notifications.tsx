@@ -2,12 +2,13 @@ import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService } from '../../lib/services/notifications';
+import type { Notification } from '../../types';
 import { Bell } from 'lucide-react';
 import '../farmer/farmer.css';
 
 export default function ConsumerNotifications() {
   const notifs = useAsync(() => notificationsService.list(), []);
-  const list   = toArray(notifs.data);
+  const list   = toArray<Notification>(notifs.data);
   const unread = list.filter(n => !n.is_read).length;
 
   const handleMarkAll = async () => { await notificationsService.markAllRead(); notifs.refetch(); };

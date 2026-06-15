@@ -19,7 +19,7 @@ export default function AdminUsers() {
   const [acting, setActing]   = useState<string|null>(null);
   const [msg, setMsg]         = useState('');
 
-  const all = toArray(users.data).filter(u => {
+  const all = toArray<any>(users.data).filter(u => {
     const s = search.toLowerCase();
     const matchSearch = !s || u.full_name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s);
     const matchRole   = !roleFilter || u.role === roleFilter;
@@ -51,7 +51,7 @@ export default function AdminUsers() {
 
       {/* ── Delete confirmation modal ── */}
       {confirmDelete && (() => {
-        const u = toArray(users.data).find(x => x.id === confirmDelete);
+        const u = toArray<any>(users.data).find(x => x.id === confirmDelete);
         return (
           <div style={{
             position:'fixed', inset:0, background:'rgba(0,0,0,0.45)',

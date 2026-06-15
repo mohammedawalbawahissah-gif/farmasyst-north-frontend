@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/ui';
+import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { toArray } from '../../lib/api';
@@ -30,8 +30,8 @@ export default function AdminCreditWorkflow() {
   const [msg,       setMsg]     = useState('');
   const [msgType,   setMsgType] = useState<'success'|'error'>('success');
 
-  const allApps      = toArray(apps.data);
-  const allAgreements = toArray(agreements.data);
+  const allApps      = toArray<any>(apps.data);
+  const allAgreements = toArray<any>(agreements.data);
   // Map application id → agreement so we can check whether a contract already exists
   const agreementByApp = Object.fromEntries(
     allAgreements.map(ag => [typeof ag.application === 'string' ? ag.application : (ag.application as any)?.id, ag])

@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../c
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm } from '../../types';
 import { toArray } from '../../lib/api';
 import { displayName, userId } from '../../types';
 import { Search, X, MapPin } from 'lucide-react';
@@ -19,8 +20,8 @@ export default function MOFarmersList() {
   const [filter,   setFilter]   = useState('');
   const [selected, setSelected] = useState<any>(null);
 
-  const allProfiles = toArray(profiles.data);
-  const farmMap     = Object.fromEntries(toArray(farms.data).map(f => [userId(f.owner as any), f]));
+  const allProfiles = toArray<any>(profiles.data);
+  const farmMap     = Object.fromEntries(toArray<Farm>(farms.data).map(f => [userId(f.owner as any), f]));
 
   const filtered = allProfiles.filter((p: any) => {
     const name = displayName(p.user) || p.user?.email || '';

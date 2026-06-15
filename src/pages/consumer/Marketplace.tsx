@@ -4,6 +4,7 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { marketplaceService } from '../../lib/services/marketplace';
 import { inputDealerService } from '../../lib/services/inputDealer';
+import type { Produce, FarmInput } from '../../types';
 import { Search, X, MapPin, Truck, Store, Package, Phone } from 'lucide-react';
 import './consumer.css';
 
@@ -55,7 +56,7 @@ export default function ConsumerMarketplace() {
   const [momoErr,    setMomoErr]    = useState('');
   const [momoSent,   setMomoSent]   = useState(false);
 
-  const all = toArray(listings.data).filter(p => {
+  const all = toArray<Produce>(listings.data).filter(p => {
     const s = search.toLowerCase();
     const matchS = !s || p.name.toLowerCase().includes(s) || (p.farm_name ?? '').toLowerCase().includes(s) || (p.farm_region ?? '').toLowerCase().includes(s);
     const matchT = !typeFilter || p.produce_type === typeFilter;
@@ -507,7 +508,7 @@ function ConsumerInputShop() {
     disinfectant:'🧴 Disinfectant', other:'📦 Other',
   };
 
-  const all   = toArray(inputs.data);
+  const all   = toArray<FarmInput>(inputs.data);
   const shown = all.filter(l =>
     (typeFilter === '' || l.input_type === typeFilter) &&
     (!search || l.name.toLowerCase().includes(search.toLowerCase()) || l.brand?.toLowerCase().includes(search.toLowerCase()))

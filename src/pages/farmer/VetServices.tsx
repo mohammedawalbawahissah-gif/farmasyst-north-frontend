@@ -3,9 +3,10 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { vetService } from '../../lib/services/vet';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm } from '../../types';
 import { toArray } from '../../lib/api';
-import { Stethoscope, Calendar, Phone, MapPin } from 'lucide-react';
-import type { VetService, VetProfile } from '../../types';
+import { Stethoscope, Calendar, MapPin } from 'lucide-react';
+import type { VetService, VetBooking } from '../../types';
 import './farmer.css';
 
 const SERVICE_TYPE_LABEL: Record<string, string> = {
@@ -14,7 +15,7 @@ const SERVICE_TYPE_LABEL: Record<string, string> = {
 };
 
 export default function FarmerVetServices() {
-  const vets     = useAsync(() => vetService.listVets({ approval_status: 'approved' }), []);
+  // vets listed via services endpoint only
   const services = useAsync(() => vetService.listServices(), []);
   const farms    = useAsync(() => farmsService.list(), []);
   const bookings = useAsync(() => vetService.listBookings(), []);
@@ -30,9 +31,9 @@ export default function FarmerVetServices() {
   const [error, setError]       = useState('');
   const [success, setSuccess]   = useState('');
 
-  const allServices = toArray(services.data);
-  const allBookings = toArray(bookings.data);
-  const allFarms    = toArray(farms.data);
+  const allServices = toArray<VetService>(services.data);
+  const allBookings = toArray<VetBooking>(bookings.data);
+  const allFarms    = toArray<Farm>(farms.data);
 
   const openBooking = (s: VetService) => { setSelService(s); setShowBook(true); setError(''); setSuccess(''); };
   const resetBook   = () => { setShowBook(false); setSelService(null); setFarmId(''); setDate(''); setIssue(''); };

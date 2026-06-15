@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { vetService } from '../../lib/services/vet';
 import { toArray } from '../../lib/api';
+import type { VetProfile } from '../../types';
 import {
   CheckCircle, XCircle, Stethoscope, Search, X, Trash2,
   Phone, MapPin, CreditCard, RefreshCw,
@@ -23,13 +24,13 @@ export default function AdminVetManagement() {
   const [acting, setActing]       = useState<string | null>(null);
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
-  const [detail, setDetail]       = useState<ReturnType<typeof toArray>[0] | null>(null);
+  const [detail, setDetail]       = useState<VetProfile | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const pending = useAsync(() => vetService.listPendingVets(), []);
   const all     = useAsync(() => vetService.listVets(), []);
 
-  const base = tab === 'pending' ? toArray(pending.data) : toArray(all.data);
+  const base = tab === 'pending' ? toArray<VetProfile>(pending.data) : toArray<VetProfile>(all.data);
 
   const shown = useMemo(() => {
     let items = base;
@@ -95,10 +96,10 @@ export default function AdminVetManagement() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', flexWrap: 'wrap', alignItems: 'center' }}>
         <Button size="sm" variant={tab === 'pending' ? 'primary' : 'secondary'} onClick={() => { setTab('pending'); setStatus('all'); }}>
-          Pending ({toArray(pending.data).length})
+          Pending ({toArray<VetProfile>(pending.data).length})
         </Button>
         <Button size="sm" variant={tab === 'all' ? 'primary' : 'secondary'} onClick={() => { setTab('all'); setStatus('all'); }}>
-          All Vets ({toArray(all.data).length})
+          All Vets ({toArray<VetProfile>(all.data).length})
         </Button>
         <Button size="sm" variant="ghost" onClick={refetchAll} style={{ marginLeft: 'auto' }}>
           <RefreshCw size={13} /> Refresh
@@ -170,7 +171,7 @@ export default function AdminVetManagement() {
                     {v.consultation_fee && ` · Consult: GHS ${v.consultation_fee}`}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: 0 }} onClick={() => {}}>
                   {v.approval_status === 'pending' && (
                     <Button size="sm" onClick={() => handleApprove(String(v.id))} disabled={acting === String(v.id)}>
                       <CheckCircle size={13} /> Approve
@@ -215,7 +216,7 @@ export default function AdminVetManagement() {
       {/* Detail modal */}
       {detail && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setDetail(null)}>
-          <Card style={{ maxWidth: 520, width: '95%', padding: 'var(--sp-lg)', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <Card style={{ maxWidth: 520, width: '95%', padding: 'var(--sp-lg)', maxHeight: '90vh', overflowY: 'auto' }} onClick={() => {}}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-md)' }}>
               <h2 style={{ margin: 0, fontSize: 17 }}>
                 Dr. {detail.user?.full_name ?? `${detail.user?.first_name ?? ''} ${detail.user?.last_name ?? ''}`.trim()}

@@ -1,4 +1,4 @@
-import { PageHeader, Card, Badge, SectionTitle } from '../../components/ui';
+import { PageHeader, Card, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { toArray } from '../../lib/api';
@@ -7,7 +7,7 @@ import './admin.css';
 
 export default function AdminDisputes() {
   const agreements = useAsync(() => creditService.listAgreements(), []);
-  const ags = toArray(agreements.data);
+  const ags = toArray<any>(agreements.data);
   const defaulted = ags.filter(a => a.status === 'defaulted');
   const cancelled = ags.filter(a => a.status === 'cancelled');
 

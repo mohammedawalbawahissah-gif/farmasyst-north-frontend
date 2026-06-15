@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
+import { PageHeader, Card, Badge, Button, StatCard } from '../../components/ui';
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { trainingService } from '../../lib/services/training';
@@ -41,8 +41,8 @@ export default function Training() {
 
   const [activeModule, setActiveModule] = useState<Module | null>(null);
 
-  const modList  = toArray(modules.data) as Module[];
-  const enrolList = toArray(enrols.data);
+  const modList  = toArray<Module>(modules.data);
+  const enrolList = toArray<any>(enrols.data);
   const enrolMap  = Object.fromEntries(enrolList.map((e: any) => [e.module, e]));
 
   const completed  = enrolList.filter((e: any) => e.status === 'completed').length;

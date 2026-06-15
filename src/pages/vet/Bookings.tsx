@@ -3,7 +3,6 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { vetService } from '../../lib/services/vet';
 import { toArray } from '../../lib/api';
-import type { VetBooking } from '../../types';
 import { CheckCircle, XCircle } from 'lucide-react';
 import '../farmer/farmer.css';
 
@@ -21,8 +20,8 @@ export default function VetBookings() {
   const [completing, setCompleting] = useState<string|null>(null);
   const [error, setError] = useState('');
 
-  const all = toArray<VetBooking>(bookings.data);
-  const shown = filter === 'all' ? all : all.filter((b: VetBooking) => b.status === filter);
+  const all = toArray<any>(bookings.data);
+  const shown = filter === 'all' ? all : all.filter(b => b.status === filter);
 
   const handleConfirm = async (id: string) => {
     try { await vetService.confirmBooking(id); bookings.refetch(); }
@@ -46,7 +45,7 @@ export default function VetBookings() {
           <Button key={f} size="sm" variant={filter === f ? 'primary' : 'secondary'} onClick={() => setFilter(f)}>
             {f.charAt(0).toUpperCase() + f.slice(1)}
             {f !== 'all' && <span style={{ marginLeft:4, background:'rgba(255,255,255,.25)', borderRadius:'9999px', padding:'1px 6px', fontSize:11 }}>
-              {all.filter((b: VetBooking) => b.status === f).length}
+              {all.filter(b => b.status === f).length}
             </span>}
           </Button>
         ))}
@@ -60,7 +59,7 @@ export default function VetBookings() {
         <Card style={{ textAlign:'center', padding:'3rem', color:'var(--col-muted)' }}>No bookings in this category.</Card>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-sm)' }}>
-          {shown.map((b: VetBooking) => (
+          {shown.map(b => (
             <Card key={b.id}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'var(--sp-md)' }}>
                 <div style={{ flex:1 }}>

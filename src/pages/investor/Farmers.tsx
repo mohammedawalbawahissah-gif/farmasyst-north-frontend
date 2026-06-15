@@ -4,6 +4,7 @@ import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm } from '../../types';
 import { displayName, userId } from '../../types';
 import { Search, X, MapPin } from 'lucide-react';
 import './investor.css';
@@ -31,9 +32,9 @@ export default function BrowseFarmers() {
   const profiles = useAsync(() => adminService.listFarmerProfiles(query), [JSON.stringify(query)]);
   const farms    = useAsync(() => farmsService.list(), []);
 
-  const allProfiles = toArray(profiles.data);
+  const allProfiles = toArray<any>(profiles.data);
   const farmMap     = Object.fromEntries(
-    toArray(farms.data).map(f => [userId(f.owner as any), f])
+    toArray<Farm>(farms.data).map(f => [userId(f.owner as any), f])
   );
 
   const filtered = allProfiles.filter((p: any) => {

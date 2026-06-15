@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm, FarmAuditReport } from '../../types';
 import { toArray } from '../../lib/api';
-import { Search, X, MapPin, Zap, Droplets, ChevronRight } from 'lucide-react';
+import { Search, X, MapPin, Zap, Droplets } from 'lucide-react';
 import '../admin/admin.css';
 
 const FLOCK_BADGE: Record<string, 'success' | 'info' | 'neutral' | 'warning'> = {
@@ -22,8 +23,8 @@ export default function MOFarms() {
   const [search,   setSearch]   = useState('');
   const [selected, setSelected] = useState<any>(null);
 
-  const allFarms  = toArray(farms.data);
-  const allAudits = toArray(audits.data);
+  const allFarms  = toArray<Farm>(farms.data);
+  const allAudits = toArray<FarmAuditReport>(audits.data);
 
   // Latest audit per farm
   const latestByFarm: Record<string, any> = {};

@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { inputDealerService } from '../../lib/services/inputDealer';
 import { toArray } from '../../lib/api';
+import type { InputDealerProfile } from '../../types';
 import {
   CheckCircle, XCircle, Store, Search, X, Trash2,
   Phone, MapPin, Hash, RefreshCw, Tag,
@@ -23,13 +24,13 @@ export default function AdminInputDealerManagement() {
   const [acting, setActing]       = useState<string | null>(null);
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
-  const [detail, setDetail]       = useState<ReturnType<typeof toArray>[0] | null>(null);
+  const [detail, setDetail]       = useState<InputDealerProfile | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const pending = useAsync(() => inputDealerService.listPendingDealers(), []);
   const all     = useAsync(() => inputDealerService.listDealers(), []);
 
-  const base = tab === 'pending' ? toArray(pending.data) : toArray(all.data);
+  const base = tab === 'pending' ? toArray<InputDealerProfile>(pending.data) : toArray<InputDealerProfile>(all.data);
 
   const shown = useMemo(() => {
     let items = base;
@@ -96,10 +97,10 @@ export default function AdminInputDealerManagement() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', flexWrap: 'wrap', alignItems: 'center' }}>
         <Button size="sm" variant={tab === 'pending' ? 'primary' : 'secondary'} onClick={() => { setTab('pending'); setStatus('all'); }}>
-          Pending ({toArray(pending.data).length})
+          Pending ({toArray<InputDealerProfile>(pending.data).length})
         </Button>
         <Button size="sm" variant={tab === 'all' ? 'primary' : 'secondary'} onClick={() => { setTab('all'); setStatus('all'); }}>
-          All Dealers ({toArray(all.data).length})
+          All Dealers ({toArray<InputDealerProfile>(all.data).length})
         </Button>
         <Button size="sm" variant="ghost" onClick={refetchAll} style={{ marginLeft: 'auto' }}>
           <RefreshCw size={13} /> Refresh
@@ -172,7 +173,7 @@ export default function AdminInputDealerManagement() {
                     )}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', gap: 'var(--sp-sm)', flexShrink: 0 }} onClick={() => {}}>
                   {d.approval_status === 'pending' && (
                     <Button size="sm" onClick={() => handleApprove(String(d.id))} disabled={acting === String(d.id)}>
                       <CheckCircle size={13} /> Approve
@@ -217,7 +218,7 @@ export default function AdminInputDealerManagement() {
       {/* Detail modal */}
       {detail && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setDetail(null)}>
-          <Card style={{ maxWidth: 520, width: '95%', padding: 'var(--sp-lg)', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <Card style={{ maxWidth: 520, width: '95%', padding: 'var(--sp-lg)', maxHeight: '90vh', overflowY: 'auto' }} onClick={() => {}}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-md)' }}>
               <h2 style={{ margin: 0, fontSize: 17 }}>{detail.business_name}</h2>
               <X size={18} style={{ cursor: 'pointer', color: 'var(--col-muted)' }} onClick={() => setDetail(null)} />

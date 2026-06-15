@@ -3,13 +3,14 @@ import { inputDealerService } from '../../lib/services/inputDealer';
 import { toArray } from '../../lib/api';
 import { PageHeader, Card, StatCard, SectionTitle } from '../../components/ui';
 import { Package, ShoppingBag, Store, TrendingUp } from 'lucide-react';
+import type { FarmInput } from '../../types';
 import { useAuth } from '../../lib/auth-context';
 import '../farmer/farmer.css';
 
 export default function InputDealerDashboard() {
   const { user } = useAuth();
   const listings = useAsync(() => inputDealerService.listMyListings(), []);
-  const all = toArray(listings.data);
+  const all = toArray<FarmInput>(listings.data);
   const active      = all.filter(l => l.is_available).length;
   const outOfStock  = all.filter(l => !l.is_available).length;
 
@@ -21,10 +22,10 @@ export default function InputDealerDashboard() {
       />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'var(--sp-md)', marginBottom:'var(--sp-lg)' }}>
-        <StatCard label="Total Listings"  value={all.length}    icon={<Package size={20}/>}    color="var(--col-primary)" />
-        <StatCard label="Active"          value={active}        icon={<Store size={20}/>}       color="var(--col-success)" />
-        <StatCard label="Out of Stock"    value={outOfStock}    icon={<ShoppingBag size={20}/>} color="var(--col-warning)" />
-        <StatCard label="Categories"      value={new Set(all.map(l => l.input_type)).size} icon={<TrendingUp size={20}/>} color="#7C3AED" />
+        <StatCard label="Total Listings"  value={all.length}    icon={<Package size={20}/>}    accent="var(--col-primary)" />
+        <StatCard label="Active"          value={active}        icon={<Store size={20}/>}       accent="var(--col-success)" />
+        <StatCard label="Out of Stock"    value={outOfStock}    icon={<ShoppingBag size={20}/>} accent="var(--col-warning)" />
+        <StatCard label="Categories"      value={new Set(all.map(l => l.input_type)).size} icon={<TrendingUp size={20}/>} accent="#7C3AED" />
       </div>
 
       <SectionTitle>Recent Listings</SectionTitle>

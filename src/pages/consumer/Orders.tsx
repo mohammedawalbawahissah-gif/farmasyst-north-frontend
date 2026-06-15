@@ -2,6 +2,7 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { marketplaceService } from '../../lib/services/marketplace';
+import type { Order } from '../../types';
 import './consumer.css';
 
 const ORDER_BADGE: Record<string,'success'|'warning'|'info'|'danger'|'neutral'> = {
@@ -16,7 +17,7 @@ export default function Orders() {
     catch { /* noop */ }
   };
 
-  const all = toArray(orders.data);
+  const all = toArray<Order>(orders.data);
 
   return (
     <div>

@@ -26,7 +26,7 @@ export default function AdminDisbursements() {
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
-  const all      = toArray(requests.data);
+  const all      = toArray<any>(requests.data);
   const pending  = all.filter(r => r.status === 'pending');
   const approved = all.filter(r => r.status === 'approved');
   const rejected = all.filter(r => r.status === 'rejected');

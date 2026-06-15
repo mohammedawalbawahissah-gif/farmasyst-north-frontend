@@ -3,6 +3,7 @@ import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService } from '../../lib/services/notifications';
 import { Bell } from 'lucide-react';
+import type { Notification } from '../../types';
 
 export default function MONotifications() {
   const notifs = useAsync(() => notificationsService.list(), []);
@@ -16,7 +17,7 @@ export default function MONotifications() {
     notifs.refetch();
   };
 
-  const list   = toArray(notifs.data);
+  const list   = toArray<Notification>(notifs.data);
   const unread = list.filter(n => !n.is_read).length;
 
   return (

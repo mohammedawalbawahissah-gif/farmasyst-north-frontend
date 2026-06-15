@@ -2,6 +2,7 @@ import { PageHeader, Card, Badge, SectionTitle } from '../../components/ui';
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
+import type { Farm, FarmAuditReport } from '../../types';
 import './investor.css';
 
 const OUTCOME_BADGE: Record<string, 'success'|'warning'|'danger'> = {
@@ -12,7 +13,7 @@ export default function DueDiligence() {
   const audits = useAsync(() => farmsService.listAudits(), []);
   const farms  = useAsync(() => farmsService.list(), []);
 
-  const farmMap = Object.fromEntries((toArray(farms.data)).map(f => [f.id, f]));
+  const farmMap = Object.fromEntries((toArray<Farm>(farms.data)).map(f => [f.id, f]));
 
   return (
     <div>
@@ -21,11 +22,11 @@ export default function DueDiligence() {
       <SectionTitle>Field Audit Reports</SectionTitle>
       {audits.loading
         ? <p style={{color:'var(--col-muted)'}}>Loading audit reports…</p>
-        : (toArray(audits.data).length) === 0
+        : (toArray<FarmAuditReport>(audits.data).length) === 0
         ? <Card><p style={{padding:'var(--sp-lg)',color:'var(--col-muted)',textAlign:'center'}}>No audit reports available yet.</p></Card>
         : (
           <div style={{ display:'flex', flexDirection:'column', gap:'var(--sp-md)' }}>
-            {audits.data!.results.map(r => {
+            {toArray<FarmAuditReport>(audits.data).map(r => {
               const farm = farmMap[r.farm];
               const avgScore = Math.round((r.infrastructure_score + r.management_score + r.biosecurity_score) / 3);
               return (

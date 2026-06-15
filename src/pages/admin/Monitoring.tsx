@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import type { Farm } from '../../types';
 import { toArray } from '../../lib/api';
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
 import { displayName } from '../../types';
-import { ShieldCheck, MapPin, ClipboardList, User } from 'lucide-react';
+import { MapPin, ClipboardList, User } from 'lucide-react';
 import './admin.css';
 
 export default function AdminMonitoring() {
@@ -18,9 +19,9 @@ export default function AdminMonitoring() {
   const [assignMsg, setAssignMsg] = useState('');
   const [assignLoading, setAssignLoading] = useState(false);
 
-  const officerList = toArray(officers.data);
-  const farmList    = toArray(farms.data);
-  const auditList   = toArray(audits.data);
+  const officerList = toArray<any>(officers.data);
+  const farmList    = toArray<Farm>(farms.data);
+  const auditList   = toArray<any>(audits.data);
 
   // Count audits per officer
   const auditsByOfficer = auditList.reduce<Record<string, number>>((acc, a) => {
@@ -220,7 +221,7 @@ export default function AdminMonitoring() {
                               </Button>
                               <Button
                                 size="sm"
-                                onClick={() => handleRequestReport(f.id, f.monitoring_officer)}
+                                onClick={() => f.monitoring_officer && handleRequestReport(f.id, f.monitoring_officer)}
                                 title="Send report request to assigned officer"
                               >
                                 Request Report

@@ -5,6 +5,7 @@ import { useAsync } from '../../lib/hooks/useAsync';
 import { paymentsService } from '../../lib/services/payments';
 import { creditService } from '../../lib/services/credit';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import type { RepaymentSchedule, CreditAgreement, DisbursementRequest } from '../../types';
 import './farmer.css';
 
 const SCHEDULE_BADGE: Record<string, 'success' | 'danger' | 'warning' | 'neutral' | 'info'> = {
@@ -47,15 +48,15 @@ export default function Repayments() {
   // Which agreement schedule-panels are expanded
   const [expandedAgs, setExpandedAgs] = useState<Set<string>>(new Set());
 
-  const all     = toArray(schedules.data);
+  const all     = toArray<RepaymentSchedule>(schedules.data);
   const pending = all.filter(s => PAYABLE.has(s.status));
   const overdue = all.filter(s => s.status === 'overdue');
   const paid    = all.filter(s => s.status === 'paid');
   const totalDue  = pending.reduce((s, r) => s + parseFloat(r.amount_due), 0);
   const totalPaid = paid.reduce((s, r) => s + parseFloat(r.amount_paid), 0);
 
-  const ags    = toArray(agreements.data);
-  const drList = toArray(disbReqs.data);
+  const ags    = toArray<CreditAgreement>(agreements.data);
+  const drList = toArray<DisbursementRequest>(disbReqs.data);
   const drByAgreement = Object.fromEntries(drList.map(d => [d.agreement, d]));
   const activeAgs = ags.filter(a => a.status === 'active');
 

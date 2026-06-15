@@ -4,7 +4,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { marketplaceService } from '../../lib/services/marketplace';
 import { farmsService } from '../../lib/services/farms';
-import type { Order } from '../../types';
+import type { Order, Farm, Produce } from '../../types';
 import { ImagePlus, Truck, MapPin, Package, Phone } from 'lucide-react';
 import './farmer.css';
 
@@ -134,8 +134,8 @@ export default function FarmerMarketplace() {
     finally { setConfirming(null); }
   };
 
-  const myListings = toArray(listings.data);
-  const myOrders   = toArray(orders.data);
+  const myListings = toArray<Produce>(listings.data);
+  const myOrders   = toArray<Order>(orders.data);
   const newOrders  = myOrders.filter(o => o.status === 'pending').length;
 
   return (
@@ -224,12 +224,12 @@ export default function FarmerMarketplace() {
             </div>
           </div>
 
-          {toArray(farms.data).length > 0 && (
+          {toArray<Farm>(farms.data).length > 0 && (
             <div className="form-field">
               <label>Farm</label>
               <select value={farmId} onChange={e=>setFarmId(e.target.value)}>
                 <option value="">— Select farm —</option>
-                {toArray(farms.data).map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
+                {toArray<Farm>(farms.data).map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
           )}
@@ -383,10 +383,10 @@ export default function FarmerMarketplace() {
                   <td style={{fontSize:13}}>{o.buyer_name||'—'}</td>
                   <td><DeliveryBadge order={o}/>{o.delivery_address&&<div style={{fontSize:11,color:'var(--col-muted)',marginTop:2}}>{o.delivery_address}</div>}</td>
                   <td>
-                    <Badge variant={(o as {payment_method?:string}).payment_method==='cash_on_delivery'?'neutral':'warning'}>
-                      {(o as {payment_method?:string}).payment_method==='cash_on_delivery'?'💵 CoD':
-                       (o as {payment_method?:string}).payment_method==='momo'?'📱 MoMo':
-                       (o as {payment_method?:string}).payment_method==='card'?'💳 Card':'🏦 Bank'}
+                    <Badge variant={o.payment_method==='cash_on_delivery'?'neutral':'warning'}>
+                      {o.payment_method==='cash_on_delivery'?'💵 CoD':
+                       o.payment_method==='momo'?'📱 MoMo':
+                       o.payment_method==='card'?'💳 Card':'🏦 Bank'}
                     </Badge>
                   </td>
                   <td><strong>GHS {parseFloat(o.total_amount).toLocaleString()}</strong></td>
