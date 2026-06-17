@@ -14,10 +14,11 @@ const SHOWS_TURKEY         = new Set(['turkey', 'mixed']);
 const SHOWS_DUCK           = new Set(['duck', 'mixed']);
 const SHOWS_GEESE          = new Set(['geese', 'mixed']);
 const SHOWS_OSTRICH        = new Set(['ostrich', 'mixed']);
+const SHOWS_LOCAL_BIRDS    = new Set(['local_birds', 'mixed']);
 const SHOWS_DAY_OLD_CHICKS = new Set(['day_old_chicks', 'mixed', 'hatchery', 'poultry_and_hatchery']);
 
 // Farm category helpers
-const isPoultryType    = (t: string) => ['broilers','layers','guinea_fowl','turkey','duck','geese','ostrich','mixed','poultry_and_hatchery'].includes(t);
+const isPoultryType    = (t: string) => ['broilers','layers','guinea_fowl','turkey','duck','geese','ostrich','local_birds','mixed','poultry_and_hatchery'].includes(t);
 const isHatcheryType   = (t: string) => ['day_old_chicks','hatchery','poultry_and_hatchery'].includes(t);
 const isProcessingType = (t: string) => t === 'meat_processing';
 
@@ -40,6 +41,8 @@ export default function FarmManager() {
   const [duckCount,        setDuckCount]        = useState('');
   const [geeseCount,       setGeeseCount]       = useState('');
   const [ostrichCount,     setOstrichCount]     = useState('');
+  const [localCockCount,   setLocalCockCount]   = useState('');
+  const [localHenCount,    setLocalHenCount]    = useState('');
   const [dayOldChickCount, setDayOldChickCount] = useState('');
   // Common
   const [mortality,  setMortality]  = useState('0');
@@ -79,6 +82,7 @@ export default function FarmManager() {
   const showDuck          = SHOWS_DUCK.has(ft);
   const showGeese         = SHOWS_GEESE.has(ft);
   const showOstrich       = SHOWS_OSTRICH.has(ft);
+  const showLocalBirds    = SHOWS_LOCAL_BIRDS.has(ft);
   const showDayOldChicks  = SHOWS_DAY_OLD_CHICKS.has(ft);
 
   const hasAnyPoultryCount = (showBroilers     && !!broilerCount)
@@ -88,6 +92,7 @@ export default function FarmManager() {
     || (showDuck          && !!duckCount)
     || (showGeese         && !!geeseCount)
     || (showOstrich       && !!ostrichCount)
+    || (showLocalBirds    && (!!localCockCount || !!localHenCount))
     || (showDayOldChicks  && !!dayOldChickCount);
 
   const hasAnyHatcheryEntry = !!eggsInIncubation || !!eggsSetToday || !!chicksHatched;
@@ -112,6 +117,8 @@ export default function FarmManager() {
         duck_count:          showDuck         ? (parseInt(duckCount)        || 0) : 0,
         geese_count:         showGeese        ? (parseInt(geeseCount)       || 0) : 0,
         ostrich_count:       showOstrich      ? (parseInt(ostrichCount)     || 0) : 0,
+        local_cock_count:    showLocalBirds   ? (parseInt(localCockCount)   || 0) : 0,
+        local_hen_count:     showLocalBirds   ? (parseInt(localHenCount)    || 0) : 0,
         day_old_chick_count: showDayOldChicks ? (parseInt(dayOldChickCount) || 0) : 0,
         // Common
         mortality:           parseInt(mortality),
@@ -135,7 +142,7 @@ export default function FarmManager() {
       setSuccess('Activity logged successfully!');
       setBroilerCount(''); setLayerCount(''); setGuineaFowlCount('');
       setTurkeyCount(''); setDuckCount(''); setGeeseCount('');
-      setOstrichCount(''); setDayOldChickCount('');
+      setOstrichCount(''); setLocalCockCount(''); setLocalHenCount(''); setDayOldChickCount('');
       setMortality('0'); setFeedKg(''); setEggs('0'); setMeds(''); setNotes('');
       setEggsInIncubation(''); setEggsSetToday(''); setChicksHatched(''); setHatchRejects(''); setChicksSold('');
       setBirdsReceived(''); setBirdsProcessed(''); setCarcassWeightKg(''); setUnitsPackaged(''); setColdStorageUnits('');
@@ -234,6 +241,18 @@ export default function FarmManager() {
                         <input type="number" min="0" placeholder="0" value={ostrichCount} onChange={e => setOstrichCount(e.target.value)} />
                       </div>
                     )}
+                    {showLocalBirds && (
+                      <div className="form-field">
+                        <label>Local Cocks <span className="required">*</span></label>
+                        <input type="number" min="0" placeholder="0" value={localCockCount} onChange={e => setLocalCockCount(e.target.value)} />
+                      </div>
+                    )}
+                    {showLocalBirds && (
+                      <div className="form-field">
+                        <label>Local Hens <span className="required">*</span></label>
+                        <input type="number" min="0" placeholder="0" value={localHenCount} onChange={e => setLocalHenCount(e.target.value)} />
+                      </div>
+                    )}
                     {showDayOldChicks && (
                       <div className="form-field">
                         <label>Day-Old Chicks</label>
@@ -253,6 +272,8 @@ export default function FarmManager() {
                         (parseInt(duckCount)        || 0) +
                         (parseInt(geeseCount)       || 0) +
                         (parseInt(ostrichCount)     || 0) +
+                        (parseInt(localCockCount)   || 0) +
+                        (parseInt(localHenCount)    || 0) +
                         (parseInt(dayOldChickCount) || 0)
                       ).toLocaleString()}
                     </strong>{' '}birds
@@ -436,6 +457,8 @@ export default function FarmManager() {
                       {showDuck         && <th>Duck</th>}
                       {showGeese        && <th>Geese</th>}
                       {showOstrich      && <th>Ostrich</th>}
+                      {showLocalBirds   && <th>Cocks</th>}
+                      {showLocalBirds   && <th>Hens</th>}
                       {showDayOldChicks && <th>DOC</th>}
                       <th>Total</th>
                       <th>Mortality</th>
@@ -457,6 +480,8 @@ export default function FarmManager() {
                         {showDuck         && <td>{(log.duck_count ?? 0).toLocaleString()}</td>}
                         {showGeese        && <td>{(log.geese_count ?? 0).toLocaleString()}</td>}
                         {showOstrich      && <td>{(log.ostrich_count ?? 0).toLocaleString()}</td>}
+                        {showLocalBirds   && <td>{(log.local_cock_count ?? 0).toLocaleString()}</td>}
+                        {showLocalBirds   && <td>{(log.local_hen_count ?? 0).toLocaleString()}</td>}
                         {showDayOldChicks && <td>{(log.day_old_chick_count ?? 0).toLocaleString()}</td>}
                         <td><strong>{log.flock_count.toLocaleString()}</strong></td>
                         <td>

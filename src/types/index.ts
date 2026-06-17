@@ -122,6 +122,7 @@ export interface FarmActivityLog {
   broiler_count?: number; layer_count?: number; guinea_fowl_count?: number;
   turkey_count?: number; duck_count?: number; geese_count?: number;
   ostrich_count?: number; day_old_chick_count?: number;
+  local_cock_count?: number; local_hen_count?: number;
   // Hatchery fields
   eggs_in_incubation?: number; eggs_set_today?: number; chicks_hatched?: number;
   hatch_rejects?: number; chicks_sold?: number;

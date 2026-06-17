@@ -17,6 +17,7 @@ const FLOCK_BADGE: Record<string, 'success' | 'info' | 'neutral' | 'warning'> = 
   duck:                 'info',
   geese:                'info',
   ostrich:              'neutral',
+  local_birds:          'success',
   day_old_chicks:       'warning',
   hatchery:             'warning',
   poultry_and_hatchery: 'warning',
@@ -31,7 +32,7 @@ const REGIONS = [
 ];
 
 type FlockType =
-  | 'broilers' | 'layers' | 'guinea_fowl' | 'turkey' | 'duck' | 'geese' | 'ostrich'
+  | 'broilers' | 'layers' | 'guinea_fowl' | 'turkey' | 'duck' | 'geese' | 'ostrich' | 'local_birds'
   | 'day_old_chicks' | 'hatchery' | 'poultry_and_hatchery' | 'meat_processing' | 'mixed';
 
 interface FarmForm {
@@ -68,7 +69,7 @@ const EMPTY_FORM: FarmForm = {
 };
 
 // Category helpers
-const isPoultry     = (t: FlockType) => ['broilers','layers','guinea_fowl','turkey','duck','geese','ostrich','mixed'].includes(t);
+const isPoultry     = (t: FlockType) => ['broilers','layers','guinea_fowl','turkey','duck','geese','ostrich','local_birds','mixed'].includes(t);
 const isHatchery    = (t: FlockType) => ['day_old_chicks','hatchery','poultry_and_hatchery'].includes(t);
 const isProcessing  = (t: FlockType) => t === 'meat_processing';
 const isCombo       = (t: FlockType) => t === 'poultry_and_hatchery';
@@ -249,6 +250,7 @@ export default function AdminFarms() {
                 <option value="duck">Duck</option>
                 <option value="geese">Geese</option>
                 <option value="ostrich">Ostrich</option>
+                <option value="local_birds">Local Birds (Cocks &amp; Hens)</option>
                 <option value="mixed">Mixed Poultry</option>
               </optgroup>
               <optgroup label="Hatchery">
@@ -274,8 +276,9 @@ export default function AdminFarms() {
                   onChange={e => set('flock_size', e.target.value)}
                 />
                 <span style={{ fontSize: 11, color: 'var(--col-muted)' }}>
-                  {ft === 'layers' ? 'Total laying hens currently on farm.' :
-                   ft === 'mixed'  ? 'Total birds across all species combined.' :
+                  {ft === 'layers'      ? 'Total laying hens currently on farm.' :
+                   ft === 'mixed'       ? 'Total birds across all species combined.' :
+                   ft === 'local_birds' ? 'Total local cocks and hens combined.' :
                    'Total live birds currently on farm.'}
                 </span>
               </div>
