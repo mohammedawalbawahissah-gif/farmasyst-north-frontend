@@ -108,6 +108,7 @@ export default function FarmManager() {
     setSaving(true); setError(''); setSuccess('');
     try {
       await farmsService.createLog(farmId, {
+        farm: farmId,
         date,
         // Poultry counts
         broiler_count:       showBroilers     ? (parseInt(broilerCount)     || 0) : 0,
