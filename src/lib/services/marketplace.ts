@@ -28,6 +28,23 @@ export const marketplaceService = {
     items_data: { produce: string; quantity: string | number; unit_price: string | number }[];
   }) => api.post<Order>('/marketplace/orders/', data).then(r => r.data),
 
+  /**
+   * Initiate real payment for an existing order.
+   * - MoMo: sends a prompt to the buyer's phone (requires phone_number in payload)
+   * - Card: returns authorization_url to redirect buyer to Paystack
+   * - Bank transfer: returns bank account details
+   * - Cash on delivery: no-op
+   */
+  initiatePayment: (orderId: string, payload: { phone_number?: string }) =>
+    api.post(`/marketplace/orders/${orderId}/initiate_payment/`, payload).then(r => r.data),
+
+  /**
+   * Verify a card payment after Paystack redirects back.
+   * Call this when the buyer returns from Paystack with a reference in the URL.
+   */
+  verifyPayment: (orderId: string, reference: string) =>
+    api.post(`/marketplace/orders/${orderId}/verify_payment/`, { reference }).then(r => r.data),
+
   confirmOrder: (id: string) =>
     api.post<Order>(`/marketplace/orders/${id}/confirm/`).then(r => r.data),
 

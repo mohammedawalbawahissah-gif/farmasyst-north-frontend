@@ -116,28 +116,74 @@ export default function ConsumerMarketplace() {
     }
   };
 
-  // Final order placement
+  // Step 1: Create the order on the backend
+  // Step 2: Call initiate_payment to trigger real payment
   const placeOrder = async (phone: string | null) => {
     if (!modal) return;
     setPlacing(true); setModalErr(''); setMomoErr('');
     try {
-      await marketplaceService.createOrder({
+      // Create the order first
+      const order = await marketplaceService.createOrder({
         delivery_type:    modal.deliveryType,
         delivery_address: modal.deliveryType === 'delivery' ? modal.address : '',
         delivery_date:    modal.pickupDate || undefined,
         payment_method:   modal.paymentMethod,
         notes:            modal.notes,
         items_data: [{ produce: modal.produce.id, quantity: modal.qty, unit_price: modal.produce.price }],
-      } as never);
-      setStep('done');
-      const successMsg =
-        modal.paymentMethod === 'momo'          ? `Order placed! A MoMo prompt has been sent to ${phone}.` :
-        modal.paymentMethod === 'card'          ? 'Order placed! Redirecting to Paystack for secure payment.' :
-        modal.paymentMethod === 'bank_transfer' ? 'Order placed! Please complete your bank transfer to finalise.' :
-        'Order placed! Pay on delivery.';
-      setMsg(successMsg);
-      setMsgType('success');
-      listings.refetch();
+      } as never) as any;
+
+      const orderId = order?.id;
+
+      // Now initiate the actual payment
+      if (modal.paymentMethod === 'cash_on_delivery') {
+        setStep('done');
+        setMsg('Order placed! Pay on delivery when your order arrives.');
+        setMsgType('success');
+        listings.refetch();
+        return;
+      }
+
+      if (modal.paymentMethod === 'bank_transfer') {
+        const result = await marketplaceService.initiatePayment(orderId, {}) as any;
+        setStep('done');
+        setMsg(
+          `Order placed! Transfer GHS ${parseFloat(modal.produce.price) * parseInt(modal.qty)} to:
+` +
+          `Bank: ${result.bank_name}
+Account: ${result.account_number}
+Name: ${result.account_name}
+Ref: ${result.reference}`
+        );
+        setMsgType('success');
+        listings.refetch();
+        return;
+      }
+
+      if (modal.paymentMethod === 'momo') {
+        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone }) as any;
+        setStep('done');
+        setMsg(result.message || `MoMo prompt sent to ${phone}. Approve on your phone to complete payment.`);
+        setMsgType('success');
+        setMomoSent(true);
+        listings.refetch();
+        return;
+      }
+
+      if (modal.paymentMethod === 'card') {
+        const result = await marketplaceService.initiatePayment(orderId, {}) as any;
+        // Redirect to Paystack authorization URL
+        if (result.authorization_url) {
+          setStep('done');
+          setMsg('Redirecting to Paystack for secure card payment...');
+          setMsgType('success');
+          listings.refetch();
+          setTimeout(() => {
+            window.open(result.authorization_url, '_blank');
+          }, 800);
+        }
+        return;
+      }
+
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Could not place order. Please try again.';
       if (step === 'payment') { setMomoErr(detail); }
@@ -152,7 +198,6 @@ export default function ConsumerMarketplace() {
     if (modal.paymentMethod === 'momo') {
       if (!momoPhone.trim() || momoPhone.length < 10) { setMomoErr('Please enter a valid MoMo number.'); return; }
       placeOrder(momoPhone);
-      setMomoSent(true);
     } else if (modal.paymentMethod === 'card') {
       placeOrder(null);
     } else if (modal.paymentMethod === 'bank_transfer') {
