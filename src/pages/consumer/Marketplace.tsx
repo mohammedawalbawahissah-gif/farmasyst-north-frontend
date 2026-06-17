@@ -160,7 +160,7 @@ Ref: ${result.reference}`
       }
 
       if (modal.paymentMethod === 'momo') {
-        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone }) as any;
+        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone ?? undefined }) as any;
         setStep('done');
         setMsg(result.message || `MoMo prompt sent to ${phone}. Approve on your phone to complete payment.`);
         setMsgType('success');
