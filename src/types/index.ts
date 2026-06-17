@@ -93,7 +93,7 @@ export interface InputDealerProfile {
 }
 
 export interface FarmInput {
-  id: string; dealer: string; dealer_name: string; business_name: string;
+  id: string; dealer: string; dealer_name: string; dealer_phone: string; business_name: string;
   name: string;
   input_type: 'feed' | 'vaccine' | 'medication' | 'equipment' | 'supplement' | 'disinfectant' | 'other';
   brand: string; description: string; unit: string; price: string;

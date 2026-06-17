@@ -73,7 +73,7 @@ export default function FarmerFarmInputs() {
               </div>
               <div style={{ marginTop:'var(--sp-sm)', borderTop:'1px solid var(--col-border)', paddingTop:'var(--sp-sm)' }}>
                 <p style={{ fontSize:13, fontWeight:500 }}>🏪 {l.business_name}</p>
-                <Button size="sm" variant="secondary" style={{ marginTop:4, width:'100%' }} onClick={() => window.open(`tel:${l.dealer_name}`)}>
+                <Button size="sm" variant="secondary" style={{ marginTop:4, width:'100%' }} onClick={() => l.dealer_phone ? window.open(`tel:${l.dealer_phone}`) : alert(`Contact ${l.dealer_name} at ${l.business_name}`)}>
                   <Phone size={13}/> Contact Dealer
                 </Button>
               </div>

@@ -69,7 +69,13 @@ export default function ConsumerMarketplace() {
   });
 
   const openModal = (produce: any) => {
-    setModal({ produce, qty: '1', deliveryType: 'pickup', paymentMethod: 'momo', address: '', pickupDate: '', notes: '' });
+    // Default to the first payment method the seller actually accepts
+    const defaultPayment: PaymentMethod =
+      produce.accepts_momo          ? 'momo' :
+      produce.accepts_card          ? 'card' :
+      produce.accepts_bank_transfer ? 'bank_transfer' :
+      'cash_on_delivery';
+    setModal({ produce, qty: '1', deliveryType: 'pickup', paymentMethod: defaultPayment, address: '', pickupDate: '', notes: '' });
     setStep('order');
     setModalErr('');
     setMomoPhone('');
@@ -416,21 +422,26 @@ export default function ConsumerMarketplace() {
                   <label>Payment method</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-sm)' }}>
                     {([
-                      { value: 'momo',             icon: '📱', title: 'MTN MoMo',          sub: 'Mobile money prompt' },
-                      { value: 'card',             icon: '💳', title: 'Card (Paystack)',    sub: 'Visa / Mastercard' },
-                      { value: 'bank_transfer',    icon: '🏦', title: 'Bank Transfer',      sub: 'Direct bank payment' },
-                      { value: 'cash_on_delivery', icon: '💵', title: 'Cash on Delivery',  sub: 'Pay on receipt' },
+                      { value: 'momo',             icon: '📱', title: 'MTN MoMo',         sub: 'Mobile money prompt',  accepted: modal.produce.accepts_momo ?? true },
+                      { value: 'card',             icon: '💳', title: 'Card (Paystack)',   sub: 'Visa / Mastercard',    accepted: modal.produce.accepts_card ?? false },
+                      { value: 'bank_transfer',    icon: '🏦', title: 'Bank Transfer',     sub: 'Direct bank payment',  accepted: modal.produce.accepts_bank_transfer ?? false },
+                      { value: 'cash_on_delivery', icon: '💵', title: 'Cash on Delivery', sub: 'Pay on receipt',        accepted: modal.produce.accepts_cod ?? true },
                     ] as const).map(opt => (
-                      <div key={opt.value} onClick={() => setModal(m => m ? { ...m, paymentMethod: opt.value } : m)}
+                      <div key={opt.value}
+                        onClick={() => opt.accepted && setModal(m => m ? { ...m, paymentMethod: opt.value } : m)}
                         style={{
-                          border: `2px solid ${modal.paymentMethod === opt.value ? 'var(--col-primary)' : 'var(--col-border)'}`,
-                          borderRadius: 8, padding: 'var(--sp-sm)', cursor: 'pointer',
-                          background: modal.paymentMethod === opt.value ? '#fffbf0' : '#fff',
+                          border: `2px solid ${modal.paymentMethod === opt.value ? 'var(--col-primary)' : opt.accepted ? 'var(--col-border)' : 'transparent'}`,
+                          borderRadius: 8, padding: 'var(--sp-sm)',
+                          cursor: opt.accepted ? 'pointer' : 'not-allowed',
+                          background: modal.paymentMethod === opt.value ? '#fffbf0' : opt.accepted ? '#fff' : '#f5f5f5',
                           textAlign: 'center',
+                          opacity: opt.accepted ? 1 : 0.4,
                         }}>
                         <div style={{ fontSize: 22, marginBottom: 4 }}>{opt.icon}</div>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{opt.title}</div>
-                        <div style={{ fontSize: 11, color: 'var(--col-muted)', marginTop: 2 }}>{opt.sub}</div>
+                        <div style={{ fontSize: 11, color: 'var(--col-muted)', marginTop: 2 }}>
+                          {opt.accepted ? opt.sub : 'Not accepted'}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -547,7 +558,13 @@ function ConsumerInputShop() {
               </div>
               <div style={{marginTop:'var(--sp-sm)',borderTop:'1px solid var(--col-border)',paddingTop:'var(--sp-sm)'}}>
                 <p style={{fontSize:13,fontWeight:500,margin:'0 0 4px'}}>🏪 {l.business_name}</p>
-                <button className="btn btn--secondary btn--sm" style={{width:'100%',display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}>
+                <button
+                  className="btn btn--secondary btn--sm"
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}
+                  onClick={() => (l as any).dealer_phone
+                    ? window.open(`tel:${(l as any).dealer_phone}`)
+                    : alert(`Contact ${l.business_name} — no phone number listed.`)}
+                >
                   <Phone size={13}/> Contact Dealer
                 </button>
               </div>
