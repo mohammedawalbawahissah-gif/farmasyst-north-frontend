@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const [firstName,    setFirstName]    = useState(user?.first_name ?? '');
   const [lastName,     setLastName]     = useState(user?.last_name  ?? '');
   const [phone,        setPhone]        = useState(user?.phone       ?? '');
-  const [language,     setLanguage]     = useState<'en'|'dag'>(user?.language ?? 'en');
+  const [language,     setLanguage]     = useState<string>(user?.language ?? 'en');
   const [photoPreview, setPhotoPreview] = useState<string | null>(user?.profile_photo ?? null);
   const [photoFile,    setPhotoFile]    = useState<File | null>(null);
 
@@ -274,7 +274,7 @@ export default function ProfilePage() {
             <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="024XXXXXXX" />
           </Field>
           <Field label="Preferred language">
-            <select value={language} onChange={e => setLanguage(e.target.value as 'en'|'dag'|string)}>
+            <select value={language} onChange={e => setLanguage(e.target.value)}>
               <option value="en">English</option>
               <option value="dag">Dagbani</option>
               <option value="tw">Twi (Akan)</option>
