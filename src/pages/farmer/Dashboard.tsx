@@ -2,6 +2,7 @@ import { Tractor, TrendingUp, FileText, BookOpen, AlertCircle } from 'lucide-rea
 import { toArray } from '../../lib/api';
 import { PageHeader, StatCard, Card, Badge, Button, SectionTitle } from '../../components/ui';
 import { useAuth } from '../../lib/auth-context';
+import { authService } from '../../lib/services/auth';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import type { CreditApplication, Farm, RepaymentSchedule, TrainingEnrolment, CreditAgreement } from '../../types';
@@ -28,7 +29,8 @@ export default function FarmerDashboard() {
   const farms     = useAsync(() => farmsService.list(), []);
   const schedules  = useAsync(() => paymentsService.listSchedules(), []);
   const enrols     = useAsync(() => trainingService.listEnrolments(), []);
-  const agreements = useAsync(() => creditService.listAgreements(), []);
+  const agreements    = useAsync(() => creditService.listAgreements(), []);
+  const farmerProfile = useAsync(() => authService.getFarmerProfile(), []);
 
   const recentApps      = toArray<CreditApplication>(apps.data).slice(0, 5) ?? [];
   const primaryFarm     = toArray<Farm>(farms.data)[0];
@@ -167,13 +169,18 @@ export default function FarmerDashboard() {
               <SectionTitle style={{ marginTop: 'var(--sp-lg)' }}>Credit Score</SectionTitle>
               <Card className="credit-score-card">
                 <div className="credit-score__ring">
-                  <span className="credit-score__value">—</span>
-                  <span className="credit-score__label">/ 100</span>
+                  <span className="credit-score__value">{parseFloat((farmerProfile.data as any)?.credit_score ?? '0').toFixed(1)}</span>
+                  <span className="credit-score__label">/ 999</span>
                 </div>
                 <div>
                   <Badge variant={user.is_verified ? 'success' : 'warning'}>
                     {user.is_verified ? 'Verified' : 'Pending Verification'}
                   </Badge>
+                  {(farmerProfile.data as any)?.credit_score_updated_at && (
+                    <p style={{ fontSize: 11, color: 'var(--col-muted)', marginTop: 4 }}>
+                      Updated: {new Date((farmerProfile.data as any).credit_score_updated_at).toLocaleDateString('en-GH')}
+                    </p>
+                  )}
                   <p className="credit-score__desc">Based on farm activity, repayment history, and verification status.</p>
                 </div>
               </Card>

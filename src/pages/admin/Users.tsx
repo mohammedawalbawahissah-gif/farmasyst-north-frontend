@@ -3,7 +3,7 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
-import { Search } from 'lucide-react';
+import { Search, Edit2, X, Check } from 'lucide-react';
 import '../farmer/farmer.css';
 import './admin.css';
 
@@ -26,22 +26,48 @@ export default function AdminUsers() {
     return matchSearch && matchRole;
   });
 
-  const [confirmDelete, setConfirmDelete] = useState<string|null>(null); // user id pending delete
+  const [confirmDelete, setConfirmDelete] = useState<string|null>(null);
 
-  const handle = async (action: 'verify'|'suspend'|'delete', id: string) => {
+  // Credit score editing state
+  const [editScoreId,  setEditScoreId]  = useState<string|null>(null);
+  const [scoreInput,   setScoreInput]   = useState('');
+  const [scoreSaving,  setScoreSaving]  = useState(false);
+
+  const handle = async (action: 'verify'|'suspend'|'unsuspend'|'delete', id: string) => {
     setActing(id); setMsg('');
     try {
-      if (action === 'verify')  await adminService.verifyUser(id);
-      if (action === 'suspend') await adminService.suspendUser(id);
-      if (action === 'delete')  await adminService.deleteUser(id);
+      if (action === 'verify')    await adminService.verifyUser(id);
+      if (action === 'suspend')   await adminService.suspendUser(id);
+      if (action === 'unsuspend') await adminService.unsuspendUser(id);
+      if (action === 'delete')    await adminService.deleteUser(id);
       setMsg(
-        action === 'verify'  ? 'User verified and activated.' :
-        action === 'suspend' ? 'User suspended.' :
-                               'User deleted permanently.'
+        action === 'verify'    ? 'User verified and activated.'  :
+        action === 'suspend'   ? 'User suspended.'               :
+        action === 'unsuspend' ? 'User reactivated.'             :
+                                 'User deleted permanently.'
       );
       users.refetch();
     } catch { setMsg('Action failed.'); }
     finally { setActing(null); setConfirmDelete(null); }
+  };
+
+  const openScoreEdit = (u: any) => {
+    setEditScoreId(u.id);
+    // Try to get existing credit score from farmer_profile data if present, default 0
+    setScoreInput(u.credit_score ?? '0');
+  };
+
+  const saveScore = async (id: string) => {
+    const val = parseFloat(scoreInput);
+    if (isNaN(val) || val < 0) { setMsg('Enter a valid credit score (≥ 0).'); return; }
+    setScoreSaving(true); setMsg('');
+    try {
+      const res = await adminService.updateCreditScore(id, val);
+      setMsg((res as any).detail ?? 'Credit score updated.');
+      setEditScoreId(null);
+      users.refetch();
+    } catch { setMsg('Failed to update credit score.'); }
+    finally { setScoreSaving(false); }
   };
 
   return (
@@ -100,29 +126,99 @@ export default function AdminUsers() {
           ? <p style={{padding:'var(--sp-md)',color:'var(--col-muted)'}}>No users match your filters.</p>
           : (
             <table className="data-table">
-              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Credit Score</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
-                {all.map(u => (
-                  <tr key={u.id}>
-                    <td><strong>{u.full_name}</strong></td>
-                    <td className="data-table__muted">{u.email}</td>
-                    <td><Badge variant={ROLE_BADGE[u.role]}>{u.role}</Badge></td>
-                    <td>{u.is_verified
-                      ? <Badge variant="success">Verified</Badge>
-                      : u.is_active === false
-                        ? <Badge variant="danger">Pending Activation</Badge>
-                        : <Badge variant="neutral">Pending</Badge>
-                    }</td>
-                    <td className="data-table__muted">{new Date(u.date_joined).toLocaleDateString('en-GH')}</td>
-                    <td>
-                      <div style={{display:'flex',gap:4}}>
-                        {!u.is_verified && <Button size="sm" disabled={acting===u.id} onClick={()=>handle('verify',u.id)}>Verify</Button>}
-                        <Button size="sm" variant="danger" disabled={acting===u.id} onClick={()=>handle('suspend',u.id)}>Suspend</Button>
-                        <Button size="sm" variant="danger" disabled={acting===u.id} onClick={()=>setConfirmDelete(u.id)}>Delete</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {all.map(u => {
+                  const isSuspended = u.is_active === false;
+                  const isEditingScore = editScoreId === u.id;
+                  return (
+                    <tr key={u.id}>
+                      <td><strong>{u.full_name}</strong></td>
+                      <td className="data-table__muted">{u.email}</td>
+                      <td><Badge variant={ROLE_BADGE[u.role]}>{u.role}</Badge></td>
+                      <td>
+                        {isSuspended
+                          ? <Badge variant="danger">Suspended</Badge>
+                          : u.is_verified
+                          ? <Badge variant="success">Verified</Badge>
+                          : <Badge variant="neutral">Pending</Badge>
+                        }
+                      </td>
+                      {/* Credit score column — editable for farmers */}
+                      <td>
+                        {u.role === 'farmer' ? (
+                          isEditingScore ? (
+                            <div style={{display:'flex', alignItems:'center', gap:4}}>
+                              <input
+                                type="number" min="0" step="0.01"
+                                value={scoreInput}
+                                onChange={e => setScoreInput(e.target.value)}
+                                style={{width:72, fontSize:12, padding:'2px 6px'}}
+                                autoFocus
+                              />
+                              <button
+                                title="Save"
+                                disabled={scoreSaving}
+                                onClick={() => saveScore(u.id)}
+                                style={{background:'none',border:'none',cursor:'pointer',color:'var(--col-success,#27ae60)',padding:0}}
+                              >
+                                <Check size={14} />
+                              </button>
+                              <button
+                                title="Cancel"
+                                onClick={() => setEditScoreId(null)}
+                                style={{background:'none',border:'none',cursor:'pointer',color:'var(--col-muted)',padding:0}}
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{display:'flex', alignItems:'center', gap:4}}>
+                              <span style={{fontSize:13}}>{u.credit_score ?? '—'}</span>
+                              <button
+                                title="Edit credit score"
+                                onClick={() => openScoreEdit(u)}
+                                style={{background:'none',border:'none',cursor:'pointer',color:'var(--col-primary)',padding:0, opacity:0.7}}
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                            </div>
+                          )
+                        ) : (
+                          <span style={{color:'var(--col-muted)',fontSize:12}}>—</span>
+                        )}
+                      </td>
+                      <td className="data-table__muted">{new Date(u.date_joined).toLocaleDateString('en-GH')}</td>
+                      <td>
+                        <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                          {!u.is_verified && !isSuspended && (
+                            <Button size="sm" disabled={acting===u.id} onClick={()=>handle('verify',u.id)}>Verify</Button>
+                          )}
+                          {isSuspended ? (
+                            <Button size="sm" variant="secondary" disabled={acting===u.id} onClick={()=>handle('unsuspend',u.id)}>
+                              {acting===u.id ? '…' : 'Unsuspend'}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="danger" disabled={acting===u.id} onClick={()=>handle('suspend',u.id)}>
+                              {acting===u.id ? '…' : 'Suspend'}
+                            </Button>
+                          )}
+                          <Button size="sm" variant="danger" disabled={acting===u.id} onClick={()=>setConfirmDelete(u.id)}>Delete</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

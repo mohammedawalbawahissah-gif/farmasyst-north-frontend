@@ -274,9 +274,21 @@ export default function ProfilePage() {
             <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="024XXXXXXX" />
           </Field>
           <Field label="Preferred language">
-            <select value={language} onChange={e => setLanguage(e.target.value as 'en'|'dag')}>
+            <select value={language} onChange={e => setLanguage(e.target.value as 'en'|'dag'|string)}>
               <option value="en">English</option>
               <option value="dag">Dagbani</option>
+              <option value="tw">Twi (Akan)</option>
+              <option value="ee">Ewe</option>
+              <option value="fat">Fante</option>
+              <option value="gaa">Ga</option>
+              <option value="hau">Hausa</option>
+              <option value="kus">Kusaal</option>
+              <option value="nzi">Nzema</option>
+              <option value="gur">Gurene (Frafra)</option>
+              <option value="kas">Kasem</option>
+              <option value="bim">Bimoba</option>
+              <option value="kon">Konkomba</option>
+              <option value="mam">Mampruli</option>
             </select>
           </Field>
         </div>
@@ -314,12 +326,24 @@ export default function ProfilePage() {
                   <input value={rp.gps_address ?? ''} onChange={e => setRp('gps_address', e.target.value)} placeholder="e.g. NR-2345-6789" />
                 </Field>
               </div>
-              {rp.verification_status && (
-                <div style={{ marginTop: 'var(--sp-md)', fontSize: 13, color: 'var(--col-muted)' }}>
-                  Verification status: <strong style={{ textTransform: 'capitalize' }}>{rp.verification_status}</strong>
-                  {rp.credit_score && <> · Credit score: <strong>{rp.credit_score}</strong></>}
-                </div>
-              )}
+              <div style={{ marginTop: 'var(--sp-md)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', flexWrap: 'wrap' }}>
+                <span style={{ color: 'var(--col-muted)' }}>Verification:</span>
+                <span style={{
+                  padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  background:
+                    rp.verification_status === 'verified'  ? 'var(--col-success, #27ae60)' :
+                    rp.verification_status === 'rejected'  ? 'var(--col-danger, #c0392b)'  :
+                    rp.verification_status === 'submitted' ? 'var(--col-primary)'           :
+                    '#888',
+                  color: '#fff',
+                }}>
+                  {rp.verification_status ?? 'pending'}
+                </span>
+                {rp.credit_score !== undefined && rp.credit_score !== null && (
+                  <><span style={{ color: 'var(--col-muted)' }}>· Credit score:</span><strong>{rp.credit_score}</strong></>
+                )}
+              </div>
             </div>
           )}
 

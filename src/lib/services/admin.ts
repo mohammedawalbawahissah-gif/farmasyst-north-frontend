@@ -8,6 +8,9 @@ export const adminService = {
   getUser: (id: string) => api.get<User>(`/users/${id}/`).then(r => r.data),
   verifyUser: (id: string) => api.post(`/users/${id}/verify/`).then(r => r.data),
   suspendUser: (id: string) => api.post(`/users/${id}/suspend/`).then(r => r.data),
+  unsuspendUser: (id: string) => api.post(`/users/${id}/unsuspend/`).then(r => r.data),
+  updateCreditScore: (id: string, score: number) =>
+    api.post(`/users/${id}/update_credit_score/`, { credit_score: score }).then(r => r.data),
   listFarmers: () =>
     api.get<Paginated<User> | User[]>('/users/', { params: { role: 'farmer' } }).then(r => r.data),
   deleteUser: (id: string) => api.delete(`/users/${id}/`).then(r => r.data),

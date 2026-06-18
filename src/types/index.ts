@@ -23,6 +23,7 @@ export interface User {
   phone: string;
   role: UserRole;
   is_verified: boolean;
+  is_active: boolean;
   profile_photo: string | null;
   language: 'en' | 'dag';
   date_joined: string;
