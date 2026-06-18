@@ -124,13 +124,14 @@ export default function ConsumerMarketplace() {
     try {
       // Create the order first
       const order = await marketplaceService.createOrder({
+        produce_id:       modal.produce.id,
+        quantity:         modal.qty,
         delivery_type:    modal.deliveryType,
         delivery_address: modal.deliveryType === 'delivery' ? modal.address : '',
         delivery_date:    modal.pickupDate || undefined,
         payment_method:   modal.paymentMethod,
         notes:            modal.notes,
-        items_data: [{ produce: modal.produce.id, quantity: modal.qty, unit_price: modal.produce.price }],
-      } as never) as any;
+      }) as any;
 
       const orderId = order?.id;
 
@@ -253,13 +254,19 @@ Ref: ${result.reference}`
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 'var(--sp-md)' }}>
           {all.map(p => (
             <Card key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)', padding: 0, overflow: 'hidden' }}>
-              {(p as any).photo ? (
-                <img src={(p as any).photo} alt={p.name} style={{ width: '100%', height: 160, objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: '100%', height: 160, background: 'linear-gradient(135deg,#e8f5e9,#c8e6c9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
+              <div style={{ position: 'relative', width: '100%', height: 160 }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,#e8f5e9,#c8e6c9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>
                   {p.produce_type === 'eggs' ? '🥚' : p.produce_type === 'turkey' ? '🦚' : p.produce_type === 'guinea_fowl' ? '🦃' : p.produce_type === 'duck' ? '🦆' : '🐔'}
                 </div>
-              )}
+                {p.photo && (
+                  <img
+                    src={p.photo}
+                    alt={p.name}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+              </div>
               <div style={{ padding: '0 var(--sp-md) var(--sp-md)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-xs)', flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Badge variant={p.produce_type === 'broilers' ? 'success' : p.produce_type === 'eggs' ? 'info' : 'neutral'}>
@@ -294,87 +301,66 @@ Ref: ${result.reference}`
 
       {/* ── Order Modal ── */}
       {modal && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-          zIndex: 1000,
-          padding: '24px 16px',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}>
-          <div style={{
-            background: '#fff', borderRadius: 12,
-            width: '100%', maxWidth: 480,
-            overflowY: 'visible',
-            overflowX: 'hidden',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-            display: 'flex', flexDirection: 'column',
-            margin: 'auto',
-            flexShrink: 0,
-          }}>
+        <div className="order-modal-overlay" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="order-modal">
 
             {/* ── STEP: done ── */}
             {step === 'done' && (
-              <div style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
-                <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
-                <h3 style={{ marginBottom: 8 }}>Order Placed!</h3>
-                <p style={{ color: 'var(--col-muted)', fontSize: 14, marginBottom: 'var(--sp-lg)' }}>{msg}</p>
+              <div className="payment-success" style={{ overflowY: 'auto', flex: 1 }}>
+                <div className="payment-success__icon">✅</div>
+                <div className="payment-success__title">Order Placed!</div>
+                <p className="payment-success__sub" style={{ whiteSpace: 'pre-line' }}>{msg}</p>
                 <Button onClick={closeModal} style={{ width: '100%' }}>Close</Button>
               </div>
             )}
 
-            {/* ── STEP: payment (MoMo) ── */}
+            {/* ── STEP: payment (MoMo / Card / Bank transfer) ── */}
             {step === 'payment' && (
-              <div style={{ padding: 'var(--sp-lg)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-md)' }}>
-                  <h3 style={{ margin: 0 }}>
+              <>
+                <div className="order-modal__header">
+                  <span className="order-modal__title">
                     {modal.paymentMethod === 'momo' ? '📱 MTN Mobile Money' : modal.paymentMethod === 'card' ? '💳 Card Payment' : '🏦 Bank Transfer'}
-                  </h3>
-                  <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--col-muted)' }}><X size={20} /></button>
+                  </span>
+                  <button className="order-modal__close" onClick={closeModal}><X size={20} /></button>
                 </div>
 
-                <div style={{ background: '#f8f6f2', borderRadius: 8, padding: 'var(--sp-md)', marginBottom: 'var(--sp-md)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 13, color: 'var(--col-muted)' }}>Total to pay</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--col-primary)' }}>
-                    GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                <div className="order-modal__body">
+                  <div style={{ background: 'var(--col-surface)', borderRadius: 8, padding: 'var(--sp-md)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 13, color: 'var(--col-muted)' }}>Total to pay</div>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--col-primary)' }}>
+                      GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--col-muted)', marginTop: 4 }}>{modal.produce.name} × {modal.qty} {modal.produce.unit}</div>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--col-muted)', marginTop: 4 }}>{modal.produce.name} × {modal.qty} {modal.produce.unit}</div>
+
+                  <div className="payment-panel">
+                    <div className="payment-panel__title">
+                      {modal.paymentMethod === 'momo' && '📱 Enter your MTN Mobile Money number. A payment prompt will be sent to your phone.'}
+                      {modal.paymentMethod === 'card' && '💳 Click Pay to be redirected to Paystack for secure card payment.'}
+                      {modal.paymentMethod === 'bank_transfer' && '🏦 Transfer to: FarmAsyst North · Stanbic Bank · Acc: 9040008877142 · Enter your reference below.'}
+                    </div>
+
+                    {momoErr && <p className="form-error">{momoErr}</p>}
+
+                    {modal.paymentMethod === 'momo' && (
+                      <div className="form-field">
+                        <label>MoMo phone number</label>
+                        <input type="tel" placeholder="024XXXXXXX"
+                          value={momoPhone} onChange={e => setMomoPhone(e.target.value)}
+                          disabled={momoSent && placing} />
+                      </div>
+                    )}
+                    {modal.paymentMethod === 'bank_transfer' && (
+                      <div className="form-field">
+                        <label>Transfer reference (optional)</label>
+                        <input type="text" placeholder="e.g. your name or order number"
+                          value={momoPhone} onChange={e => setMomoPhone(e.target.value)} />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{
-                  background: '#fff8e1', border: '1px solid #f9a825',
-                  borderRadius: 8, padding: '10px 14px', marginBottom: 'var(--sp-md)', fontSize: 13, color: '#7c5800',
-                }}>
-                  {modal.paymentMethod === 'momo' && '📱 Enter your MTN Mobile Money number. A payment prompt will be sent to your phone.'}
-                  {modal.paymentMethod === 'card' && '💳 Click Pay to be redirected to Paystack for secure card payment.'}
-                  {modal.paymentMethod === 'bank_transfer' && '🏦 Transfer to: FarmAsyst North · Stanbic Bank · Acc: 9040008877142 · Enter your reference below.'}
-                </div>
-
-                {momoErr && <p className="form-error" style={{ marginBottom: 'var(--sp-sm)' }}>{momoErr}</p>}
-
-                {modal.paymentMethod === 'momo' && (
-                  <div className="form-field">
-                    <label>MoMo phone number</label>
-                    <input type="tel" placeholder="024XXXXXXX"
-                      value={momoPhone} onChange={e => setMomoPhone(e.target.value)}
-                      disabled={momoSent && placing} />
-                  </div>
-                )}
-                {modal.paymentMethod === 'bank_transfer' && (
-                  <div className="form-field">
-                    <label>Transfer reference (optional)</label>
-                    <input type="text" placeholder="e.g. your name or order number"
-                      value={momoPhone} onChange={e => setMomoPhone(e.target.value)} />
-                  </div>
-                )}
-                {modal.paymentMethod === 'card' && (
-                  <p style={{ fontSize: 13, color: 'var(--col-muted)', marginBottom: 'var(--sp-md)' }}>
-                    Click "Pay" to be redirected to Paystack for secure card payment.
-                  </p>
-                )}
-
-                <div style={{ display: 'flex', gap: 'var(--sp-sm)', marginTop: 'var(--sp-md)' }}>
+                <div className="order-modal__footer">
                   <Button variant="secondary" onClick={() => { setStep('order'); setMomoErr(''); }}>Back</Button>
                   <Button
                     style={{ flex: 1 }}
@@ -384,142 +370,148 @@ Ref: ${result.reference}`
                     {placing ? 'Sending prompt…' : `Pay GHS ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
                   </Button>
                 </div>
-              </div>
+              </>
             )}
 
             {/* ── STEP: order details ── */}
             {step === 'order' && (
-              <div style={{ padding: 'var(--sp-lg)' }}>
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--sp-md)' }}>
-                  <div>
-                    <h3 style={{ margin: 0 }}>Place Order</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--col-muted)' }}>{modal.produce.name} · {modal.produce.farm_name}</p>
-                  </div>
-                  <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--col-muted)', padding: 4 }}>
-                    <X size={20} />
-                  </button>
+              <>
+                <div className="order-modal__header">
+                  <span className="order-modal__title">Place Order</span>
+                  <button className="order-modal__close" onClick={closeModal}><X size={20} /></button>
                 </div>
 
-                {modalErr && <p className="form-error" style={{ marginBottom: 'var(--sp-md)' }}>{modalErr}</p>}
+                <div className="order-modal__body">
+                  {modalErr && <p className="form-error">{modalErr}</p>}
 
-                {/* Quantity */}
-                <div className="form-field">
-                  <label>Quantity ({modal.produce.unit})</label>
-                  <input
-                    type="number" min="1"
-                    value={modal.qty}
-                    onChange={e => setModal(m => m ? { ...m, qty: e.target.value } : m)}
-                  />
-                  <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>
-                    Available: {(modal.produce as any).quantity_available ?? modal.produce.quantity} {modal.produce.unit} · GHS {parseFloat(modal.produce.price).toLocaleString()} per {modal.produce.unit}
-                  </span>
-                </div>
-
-                {/* Fulfilment */}
-                <div className="form-field">
-                  <label>Fulfilment method</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-sm)', marginTop: 4 }}>
-                    {([
-                      { value: 'pickup',   icon: <Store size={18} />, title: 'Farm Pickup',    sub: 'Collect directly from the farm' },
-                      { value: 'delivery', icon: <Truck size={18} />, title: 'Home Delivery',  sub: 'Delivered to your address' },
-                    ] as const).map(opt => (
-                      <div key={opt.value} onClick={() => setModal(m => m ? { ...m, deliveryType: opt.value } : m)}
-                        style={{
-                          border: `2px solid ${modal.deliveryType === opt.value ? 'var(--col-primary)' : 'var(--col-border)'}`,
-                          borderRadius: 8, padding: 'var(--sp-sm)', cursor: 'pointer',
-                          background: modal.deliveryType === opt.value ? '#f0f7f0' : '#fff',
-                        }}>
-                        <div style={{ color: modal.deliveryType === opt.value ? 'var(--col-primary)' : 'var(--col-muted)', marginBottom: 4 }}>{opt.icon}</div>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{opt.title}</div>
-                        <div style={{ fontSize: 11, color: 'var(--col-muted)', marginTop: 2 }}>{opt.sub}</div>
+                  <div className="order-modal__produce">
+                    <div style={{ position: 'relative', width: 64, height: 48, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: 'var(--color-border-tertiary,#e5e3dd)' }}>
+                      <div className="order-modal__produce-placeholder" style={{ position: 'absolute', inset: 0 }}>
+                        {modal.produce.produce_type === 'eggs' ? '🥚' : modal.produce.produce_type === 'turkey' ? '🦚' : modal.produce.produce_type === 'guinea_fowl' ? '🦃' : modal.produce.produce_type === 'duck' ? '🦆' : '🐔'}
                       </div>
-                    ))}
+                      {modal.produce.photo && (
+                        <img
+                          src={modal.produce.photo}
+                          alt={modal.produce.name}
+                          className="order-modal__produce-img"
+                          style={{ position: 'absolute', inset: 0 }}
+                          onError={e => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
+                    </div>
+                    <div className="order-modal__produce-info">
+                      <strong>{modal.produce.name}</strong>
+                      <span>{modal.produce.farm_name}{modal.produce.farm_region ? ` · ${modal.produce.farm_region}` : ''}</span>
+                    </div>
                   </div>
-                </div>
 
-                {modal.deliveryType === 'delivery' && (
+                  {/* Quantity */}
                   <div className="form-field">
-                    <label>Delivery address <span className="required">*</span></label>
-                    <textarea rows={2} placeholder="e.g. House 14, Lamashegu, Tamale"
-                      value={modal.address}
-                      onChange={e => setModal(m => m ? { ...m, address: e.target.value } : m)} />
+                    <label>Quantity ({modal.produce.unit})</label>
+                    <input
+                      type="number" min="1"
+                      value={modal.qty}
+                      onChange={e => setModal(m => m ? { ...m, qty: e.target.value } : m)}
+                    />
+                    <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>
+                      Available: {(modal.produce as any).quantity_available ?? modal.produce.quantity} {modal.produce.unit} · GHS {parseFloat(modal.produce.price).toLocaleString()} per {modal.produce.unit}
+                    </span>
                   </div>
-                )}
 
-                {modal.deliveryType === 'pickup' && modal.produce.farm_name && (
-                  <div style={{ background: '#f8f6f2', borderRadius: 8, padding: 'var(--sp-sm)', marginBottom: 'var(--sp-md)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--col-muted)' }}>
-                    <MapPin size={13} /> Pickup from: <strong>{modal.produce.farm_name}</strong>
-                    {modal.produce.farm_region && ` · ${modal.produce.farm_region}`}
-                  </div>
-                )}
-
-                {/* Date */}
-                <div className="form-field">
-                  <label>Preferred {modal.deliveryType === 'pickup' ? 'pickup' : 'delivery'} date <span style={{ color: 'var(--col-muted)', fontWeight: 400 }}>(optional)</span></label>
-                  <input type="date" min={new Date().toISOString().split('T')[0]}
-                    value={modal.pickupDate}
-                    onChange={e => setModal(m => m ? { ...m, pickupDate: e.target.value } : m)} />
-                </div>
-
-                {/* Payment method */}
-                <div className="form-field">
-                  <label>Payment method</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-sm)' }}>
-                    {([
-                      { value: 'momo',             icon: '📱', title: 'MTN MoMo',         sub: 'Mobile money prompt',  accepted: modal.produce.accepts_momo ?? true },
-                      { value: 'card',             icon: '💳', title: 'Card (Paystack)',   sub: 'Visa / Mastercard',    accepted: modal.produce.accepts_card ?? false },
-                      { value: 'bank_transfer',    icon: '🏦', title: 'Bank Transfer',     sub: 'Direct bank payment',  accepted: modal.produce.accepts_bank_transfer ?? false },
-                      { value: 'cash_on_delivery', icon: '💵', title: 'Cash on Delivery', sub: 'Pay on receipt',        accepted: modal.produce.accepts_cod ?? true },
-                    ] as const).map(opt => (
-                      <div key={opt.value}
-                        onClick={() => opt.accepted && setModal(m => m ? { ...m, paymentMethod: opt.value } : m)}
-                        style={{
-                          border: `2px solid ${modal.paymentMethod === opt.value ? 'var(--col-primary)' : opt.accepted ? 'var(--col-border)' : 'transparent'}`,
-                          borderRadius: 8, padding: 'var(--sp-sm)',
-                          cursor: opt.accepted ? 'pointer' : 'not-allowed',
-                          background: modal.paymentMethod === opt.value ? '#fffbf0' : opt.accepted ? '#fff' : '#f5f5f5',
-                          textAlign: 'center',
-                          opacity: opt.accepted ? 1 : 0.4,
-                        }}>
-                        <div style={{ fontSize: 22, marginBottom: 4 }}>{opt.icon}</div>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{opt.title}</div>
-                        <div style={{ fontSize: 11, color: 'var(--col-muted)', marginTop: 2 }}>
-                          {opt.accepted ? opt.sub : 'Not accepted'}
+                  {/* Fulfilment */}
+                  <div className="form-field">
+                    <label>Fulfilment method</label>
+                    <div className="delivery-toggle">
+                      {([
+                        { value: 'pickup',   icon: <Store size={18} />, title: 'Farm Pickup',    sub: 'Collect directly from the farm' },
+                        { value: 'delivery', icon: <Truck size={18} />, title: 'Home Delivery',  sub: 'Delivered to your address' },
+                      ] as const).map(opt => (
+                        <div key={opt.value}
+                          className={`toggle-option ${modal.deliveryType === opt.value ? 'toggle-option--active' : ''}`}
+                          onClick={() => setModal(m => m ? { ...m, deliveryType: opt.value } : m)}>
+                          <div className="toggle-option__icon" style={{ color: modal.deliveryType === opt.value ? 'var(--col-primary)' : 'var(--col-muted)' }}>{opt.icon}</div>
+                          <div className="toggle-option__label">{opt.title}</div>
+                          <div className="toggle-option__sub">{opt.sub}</div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+
+                  {modal.deliveryType === 'delivery' && (
+                    <div className="form-field">
+                      <label>Delivery address <span className="required">*</span></label>
+                      <textarea rows={2} placeholder="e.g. House 14, Lamashegu, Tamale"
+                        value={modal.address}
+                        onChange={e => setModal(m => m ? { ...m, address: e.target.value } : m)} />
+                    </div>
+                  )}
+
+                  {modal.deliveryType === 'pickup' && modal.produce.farm_name && (
+                    <div style={{ background: 'var(--col-surface)', borderRadius: 8, padding: 'var(--sp-sm)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--col-muted)' }}>
+                      <MapPin size={13} /> Pickup from: <strong>{modal.produce.farm_name}</strong>
+                      {modal.produce.farm_region && ` · ${modal.produce.farm_region}`}
+                    </div>
+                  )}
+
+                  {/* Date */}
+                  <div className="form-field">
+                    <label>Preferred {modal.deliveryType === 'pickup' ? 'pickup' : 'delivery'} date <span style={{ color: 'var(--col-muted)', fontWeight: 400 }}>(optional)</span></label>
+                    <input type="date" min={new Date().toISOString().split('T')[0]}
+                      value={modal.pickupDate}
+                      onChange={e => setModal(m => m ? { ...m, pickupDate: e.target.value } : m)} />
+                  </div>
+
+                  {/* Payment method */}
+                  <div className="form-field">
+                    <label>Payment method</label>
+                    <div className="payment-toggle">
+                      {([
+                        { value: 'momo',             icon: '📱', title: 'MTN MoMo',         sub: 'Mobile money prompt',  accepted: modal.produce.accepts_momo ?? true },
+                        { value: 'card',             icon: '💳', title: 'Card (Paystack)',   sub: 'Visa / Mastercard',    accepted: modal.produce.accepts_card ?? false },
+                        { value: 'bank_transfer',    icon: '🏦', title: 'Bank Transfer',     sub: 'Direct bank payment',  accepted: modal.produce.accepts_bank_transfer ?? false },
+                        { value: 'cash_on_delivery', icon: '💵', title: 'Cash on Delivery', sub: 'Pay on receipt',        accepted: modal.produce.accepts_cod ?? true },
+                      ] as const).map(opt => (
+                        <div key={opt.value}
+                          className={`toggle-option ${modal.paymentMethod === opt.value ? 'toggle-option--pay-active' : ''}`}
+                          onClick={() => opt.accepted && setModal(m => m ? { ...m, paymentMethod: opt.value } : m)}
+                          style={{ cursor: opt.accepted ? 'pointer' : 'not-allowed', opacity: opt.accepted ? 1 : 0.4 }}>
+                          <div className="toggle-option__icon">{opt.icon}</div>
+                          <div className="toggle-option__label">{opt.title}</div>
+                          <div className="toggle-option__sub">{opt.accepted ? opt.sub : 'Not accepted'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="form-field">
+                    <label>Additional notes (optional)</label>
+                    <input type="text" placeholder="e.g. preferred delivery time, special instructions…"
+                      value={modal.notes}
+                      onChange={e => setModal(m => m ? { ...m, notes: e.target.value } : m)} />
+                  </div>
+
+                  {/* Order summary */}
+                  <div className="order-summary">
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--col-muted)', marginBottom: 'var(--sp-sm)' }}>Order Summary</div>
+                    <div className="order-summary__row">
+                      <span>{modal.produce.name} × {modal.qty || 0} {modal.produce.unit}</span>
+                      <span>GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="order-summary__row">
+                      <span>Fulfilment</span><span>{modal.deliveryType === 'delivery' ? 'Home Delivery' : 'Farm Pickup'}</span>
+                    </div>
+                    <div className="order-summary__row">
+                      <span>Payment</span><span>{{ momo: 'MTN MoMo', card: 'Card (Paystack)', bank_transfer: 'Bank Transfer', cash_on_delivery: 'Cash on Delivery' }[modal.paymentMethod] ?? modal.paymentMethod}</span>
+                    </div>
+                    <div className="order-summary__total">
+                      <span>Total</span>
+                      <span style={{ color: 'var(--col-primary)' }}>GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Notes */}
-                <div className="form-field">
-                  <label>Additional notes (optional)</label>
-                  <input type="text" placeholder="e.g. preferred delivery time, special instructions…"
-                    value={modal.notes}
-                    onChange={e => setModal(m => m ? { ...m, notes: e.target.value } : m)} />
-                </div>
-
-                {/* Order summary */}
-                <div style={{ background: '#f8f6f2', borderRadius: 8, padding: 'var(--sp-md)', marginBottom: 'var(--sp-md)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--col-muted)', marginBottom: 'var(--sp-sm)' }}>Order Summary</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span>{modal.produce.name} × {modal.qty || 0} {modal.produce.unit}</span>
-                    <span>GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--col-muted)', marginBottom: 4 }}>
-                    <span>Fulfilment</span><span>{modal.deliveryType === 'delivery' ? 'Home Delivery' : 'Farm Pickup'}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--col-muted)' }}>
-                    <span>Payment</span><span>{{ momo: 'MTN MoMo', card: 'Card (Paystack)', bank_transfer: 'Bank Transfer', cash_on_delivery: 'Cash on Delivery' }[modal.paymentMethod] ?? modal.paymentMethod}</span>
-                  </div>
-                  <div style={{ borderTop: '1px solid var(--col-border)', marginTop: 'var(--sp-sm)', paddingTop: 'var(--sp-sm)', display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                    <span>Total</span>
-                    <span style={{ color: 'var(--col-primary)' }}>GHS {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
+                <div className="order-modal__footer">
                   <Button variant="secondary" onClick={closeModal}>Cancel</Button>
                   <Button
                     disabled={!modal.qty || parseInt(modal.qty) < 1 || (modal.deliveryType === 'delivery' && !modal.address.trim())}
@@ -532,7 +524,7 @@ Ref: ${result.reference}`
                     }
                   </Button>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -591,7 +583,15 @@ function ConsumerInputShop() {
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:'var(--sp-md)'}}>
           {shown.map(l => (
             <div key={l.id} className="card" style={{display:'flex',flexDirection:'column'}}>
-              {l.photo && <img src={l.photo} alt={l.name} style={{width:'100%',height:130,objectFit:'cover',borderRadius:6,marginBottom:8}}/>}
+              <div style={{ position: 'relative', width: '100%', height: 130, borderRadius: 6, overflow: 'hidden', marginBottom: 8, background: 'var(--col-border)' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+                  {INPUT_LABEL[l.input_type]?.split(' ')[0] ?? '📦'}
+                </div>
+                {l.photo && (
+                  <img src={l.photo} alt={l.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </div>
               <div style={{flex:1}}>
                 <strong style={{fontSize:14}}>{l.name}</strong>
                 <span style={{marginLeft:6,fontSize:11,padding:'2px 6px',borderRadius:4,background:'var(--col-bg-alt)',color:'var(--col-muted)'}}>{INPUT_LABEL[l.input_type]??l.input_type}</span>

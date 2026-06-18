@@ -305,9 +305,15 @@ export default function FarmerMarketplace() {
               {myListings.map(p=>(
                 <tr key={p.id}>
                   <td>
-                    {p.photo
-                      ? <img src={p.photo} alt={p.name} style={{width:40,height:40,borderRadius:6,objectFit:'cover'}}/>
-                      : <div style={{width:40,height:40,borderRadius:6,background:'var(--col-border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🐔</div>}
+                    {(
+                      <div style={{ position: 'relative', width: 40, height: 40, borderRadius: 6, overflow: 'hidden', background: 'var(--col-border)' }}>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🐔</div>
+                        {p.photo && (
+                          <img src={p.photo} alt={p.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td><strong>{p.name}</strong>{(p as {egg_size?:string}).egg_size&&<span style={{fontSize:11,color:'var(--col-muted)',display:'block'}}>{(p as {egg_size?:string}).egg_size} eggs</span>}</td>
                   <td style={{textTransform:'capitalize'}}>{p.produce_type.replace('_',' ')}</td>

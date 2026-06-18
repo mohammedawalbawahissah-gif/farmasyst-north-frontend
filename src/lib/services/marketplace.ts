@@ -20,12 +20,13 @@ export const marketplaceService = {
     api.get<Paginated<Order>>('/marketplace/orders/', { params }).then(r => r.data),
 
   createOrder: (data: {
+    produce_id: string;
+    quantity: string | number;
     delivery_type: 'pickup' | 'delivery';
     delivery_address?: string;
     delivery_date?: string;
     payment_method?: string;
     notes?: string;
-    items_data: { produce: string; quantity: string | number; unit_price: string | number }[];
   }) => api.post<Order>('/marketplace/orders/', data).then(r => r.data),
 
   /**

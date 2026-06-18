@@ -134,7 +134,15 @@ export default function InputDealerListings() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:'var(--sp-md)' }}>
           {all.map(l => (
             <Card key={l.id}>
-              {l.photo && <img src={l.photo} alt={l.name} style={{ width:'100%', height:140, objectFit:'cover', borderRadius:6, marginBottom:8 }} />}
+              <div style={{ position: 'relative', width: '100%', height: 140, borderRadius: 6, overflow: 'hidden', marginBottom: 8, background: 'var(--col-border)' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+                  {INPUT_TYPES.find(t => t.value === l.input_type)?.label.split(' ')[0] ?? '📦'}
+                </div>
+                {l.photo && (
+                  <img src={l.photo} alt={l.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                 <div style={{ flex:1 }}>
                   <strong style={{ fontSize:14 }}>{l.name}</strong>

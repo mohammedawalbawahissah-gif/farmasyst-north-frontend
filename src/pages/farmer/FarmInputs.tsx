@@ -59,7 +59,15 @@ export default function FarmerFarmInputs() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:'var(--sp-md)' }}>
           {shown.map(l => (
             <Card key={l.id} style={{ display:'flex', flexDirection:'column' }}>
-              {l.photo && <img src={l.photo} alt={l.name} style={{ width:'100%', height:140, objectFit:'cover', borderRadius:6, marginBottom:8 }} />}
+              <div style={{ position: 'relative', width: '100%', height: 140, borderRadius: 6, overflow: 'hidden', marginBottom: 8, background: 'var(--col-border)' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
+                  {INPUT_LABEL[l.input_type]?.split(' ')[0] ?? '📦'}
+                </div>
+                {l.photo && (
+                  <img src={l.photo} alt={l.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                )}
+              </div>
               <div style={{ flex:1 }}>
                 <strong style={{ fontSize:14 }}>{l.name}</strong>
                 <Badge variant="neutral">{INPUT_LABEL[l.input_type] ?? l.input_type}</Badge>
