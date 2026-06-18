@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { toArray } from '../../lib/api';
 import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
@@ -300,7 +301,7 @@ Ref: ${result.reference}`
       )}
 
       {/* ── Order Modal ── */}
-      {modal && (
+      {modal && createPortal(
         <div className="order-modal-overlay" onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
           <div className="order-modal">
 
@@ -339,25 +340,25 @@ Ref: ${result.reference}`
                       {modal.paymentMethod === 'card' && '💳 Click Pay to be redirected to Paystack for secure card payment.'}
                       {modal.paymentMethod === 'bank_transfer' && '🏦 Transfer to: FarmAsyst North · Stanbic Bank · Acc: 9040008877142 · Enter your reference below.'}
                     </div>
-
-                    {momoErr && <p className="form-error">{momoErr}</p>}
-
-                    {modal.paymentMethod === 'momo' && (
-                      <div className="form-field">
-                        <label>MoMo phone number</label>
-                        <input type="tel" placeholder="024XXXXXXX"
-                          value={momoPhone} onChange={e => setMomoPhone(e.target.value)}
-                          disabled={momoSent && placing} />
-                      </div>
-                    )}
-                    {modal.paymentMethod === 'bank_transfer' && (
-                      <div className="form-field">
-                        <label>Transfer reference (optional)</label>
-                        <input type="text" placeholder="e.g. your name or order number"
-                          value={momoPhone} onChange={e => setMomoPhone(e.target.value)} />
-                      </div>
-                    )}
                   </div>
+
+                  {momoErr && <p className="form-error">{momoErr}</p>}
+
+                  {modal.paymentMethod === 'momo' && (
+                    <div className="form-field">
+                      <label>MoMo phone number</label>
+                      <input type="tel" placeholder="024XXXXXXX"
+                        value={momoPhone} onChange={e => setMomoPhone(e.target.value)}
+                        disabled={momoSent && placing} />
+                    </div>
+                  )}
+                  {modal.paymentMethod === 'bank_transfer' && (
+                    <div className="form-field">
+                      <label>Transfer reference (optional)</label>
+                      <input type="text" placeholder="e.g. your name or order number"
+                        value={momoPhone} onChange={e => setMomoPhone(e.target.value)} />
+                    </div>
+                  )}
                 </div>
 
                 <div className="order-modal__footer">
@@ -528,7 +529,7 @@ Ref: ${result.reference}`
             )}
           </div>
         </div>
-      )}
+      , document.body)}
     </> }
     </div>
   );
