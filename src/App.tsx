@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './lib/auth-context';
 import AppLayout from './components/layout/AppLayout';
 
 import Login from './pages/auth/Login';
+import ProfilePage from './pages/shared/ProfilePage';
 
 import FarmerDashboard     from './pages/farmer/Dashboard';
 import CreditApplication   from './pages/farmer/CreditApplication';
@@ -91,6 +92,7 @@ function AppRoutes() {
         <Route path="/farmer/vet"           element={<FarmerVetServices />} />
         <Route path="/farmer/inputs"        element={<FarmerFarmInputs />} />
         <Route path="/farmer/notifications" element={<FarmerNotifications />} />
+        <Route path="/farmer/profile" element={<ProfilePage />} />
 
         {/* Investor */}
         <Route path="/investor"                element={<InvestorDashboard />} />
@@ -101,6 +103,7 @@ function AppRoutes() {
         <Route path="/investor/diligence"      element={<DueDiligence />} />
         <Route path="/investor/impact"         element={<ImpactReports />} />
         <Route path="/investor/notifications"  element={<InvestorNotifications />} />
+        <Route path="/investor/profile" element={<ProfilePage />} />
 
         {/* Admin */}
         <Route path="/admin"                   element={<AdminDashboard />} />
@@ -118,12 +121,14 @@ function AppRoutes() {
         <Route path="/admin/vets"              element={<AdminVetManagement />} />
         <Route path="/admin/input-dealers"     element={<AdminInputDealerManagement />} />
         <Route path="/admin/settings"          element={<AdminSettings />} />
+        <Route path="/admin/profile"           element={<ProfilePage />} />
 
         {/* Consumer */}
         <Route path="/consumer"               element={<ConsumerMarketplace />} />
         <Route path="/consumer/orders"        element={<Orders />} />
         <Route path="/consumer/subscriptions" element={<Subscriptions />} />
         <Route path="/consumer/notifications" element={<ConsumerNotifications />} />
+        <Route path="/consumer/profile" element={<ProfilePage />} />
 
         {/* Monitoring Officer */}
         <Route path="/monitoring_officer"                element={<MonitoringDashboard />} />
@@ -131,17 +136,20 @@ function AppRoutes() {
         <Route path="/monitoring_officer/report"         element={<SubmitReport />} />
         <Route path="/monitoring_officer/farmers"        element={<MonitoringFarmersList />} />
         <Route path="/monitoring_officer/notifications"  element={<MonitoringNotifications />} />
+        <Route path="/monitoring_officer/profile" element={<ProfilePage />} />
 
         {/* Vet */}
         <Route path="/vet"                element={<VetDashboard />} />
         <Route path="/vet/bookings"       element={<VetBookings />} />
         <Route path="/vet/services"       element={<VetServices />} />
         <Route path="/vet/notifications"  element={<VetNotifications />} />
+        <Route path="/vet/profile" element={<ProfilePage />} />
 
         {/* Input Dealer */}
         <Route path="/input_dealer"                element={<InputDealerDashboard />} />
         <Route path="/input_dealer/listings"       element={<InputDealerListings />} />
         <Route path="/input_dealer/notifications"  element={<InputDealerNotifications />} />
+        <Route path="/input_dealer/profile" element={<ProfilePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

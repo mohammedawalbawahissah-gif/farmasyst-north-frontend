@@ -5,7 +5,7 @@ import {
   Store, Package, Star, UserCheck, AlertCircle, Database,
   Banknote, LogOut, ChevronLeft, ChevronRight, ClipboardList,
   MapPin, ShieldCheck, Stethoscope, Calendar, Pill, AlertTriangle,
-  Menu, X
+  Menu, X, UserCircle
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import type { UserRole } from '../../types';
@@ -24,6 +24,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Vet Services',  icon: Stethoscope,     path: '/farmer/vet' },
     { label: 'Farm Inputs',   icon: Pill,            path: '/farmer/inputs' },
     { label: 'Notifications', icon: Bell,            path: '/farmer/notifications' },
+    { label: 'My Profile',    icon: UserCircle,      path: '/farmer/profile' },
   ],
   investor: [
     { label: 'Dashboard',       icon: LayoutDashboard, path: '/investor' },
@@ -34,6 +35,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Due Diligence',   icon: FileText,        path: '/investor/diligence' },
     { label: 'Impact Reports',  icon: BarChart3,       path: '/investor/impact' },
     { label: 'Notifications',   icon: Bell,            path: '/investor/notifications' },
+    { label: 'My Profile',     icon: UserCircle,       path: '/investor/profile' },
   ],
   admin: [
     { label: 'Overview',        icon: LayoutDashboard, path: '/admin' },
@@ -51,6 +53,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Vet Services',    icon: Stethoscope,     path: '/admin/vets' },
     { label: 'Input Dealers',   icon: Store,           path: '/admin/input-dealers' },
     { label: 'Settings',        icon: Settings,        path: '/admin/settings' },
+    { label: 'My Profile',      icon: UserCircle,       path: '/admin/profile' },
   ],
   monitoring_officer: [
     { label: 'Dashboard',     icon: LayoutDashboard, path: '/monitoring_officer' },
@@ -58,23 +61,27 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Farms',         icon: MapPin,          path: '/monitoring_officer/farms' },
     { label: 'Farmers',       icon: Users,           path: '/monitoring_officer/farmers' },
     { label: 'Notifications', icon: Bell,            path: '/monitoring_officer/notifications' },
+    { label: 'My Profile',    icon: UserCircle,      path: '/monitoring_officer/profile' },
   ],
   consumer: [
     { label: 'Marketplace',   icon: Store,    path: '/consumer' },
     { label: 'My Orders',     icon: Package,  path: '/consumer/orders' },
     { label: 'Subscriptions', icon: Star,     path: '/consumer/subscriptions' },
     { label: 'Notifications', icon: Bell,     path: '/consumer/notifications' },
+    { label: 'My Profile',    icon: UserCircle, path: '/consumer/profile' },
   ],
   vet: [
     { label: 'Dashboard',     icon: LayoutDashboard, path: '/vet' },
     { label: 'Bookings',      icon: Calendar,        path: '/vet/bookings' },
     { label: 'My Services',   icon: Stethoscope,     path: '/vet/services' },
     { label: 'Notifications', icon: Bell,            path: '/vet/notifications' },
+    { label: 'My Profile',    icon: UserCircle,      path: '/vet/profile' },
   ],
   input_dealer: [
     { label: 'Dashboard',     icon: LayoutDashboard, path: '/input_dealer' },
     { label: 'My Listings',   icon: Package,         path: '/input_dealer/listings' },
     { label: 'Notifications', icon: Bell,            path: '/input_dealer/notifications' },
+    { label: 'My Profile',    icon: UserCircle,      path: '/input_dealer/profile' },
   ],
 };
 
@@ -166,8 +173,12 @@ export default function Sidebar() {
       <div className="sidebar__footer">
         {!collapsed && (
           <div className="sidebar__user">
-            <div className="sidebar__avatar">
-              {(user.full_name ?? user.first_name ?? '?').charAt(0).toUpperCase()}
+            <div className="sidebar__avatar" style={{ overflow: 'hidden', position: 'relative' }}>
+              {user.profile_photo
+                ? <img src={user.profile_photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                : (user.full_name ?? user.first_name ?? '?').charAt(0).toUpperCase()
+              }
             </div>
             <div className="sidebar__user-info">
               <span className="sidebar__user-name">
@@ -204,8 +215,12 @@ export default function Sidebar() {
           <div className="mobile-topbar__logo-mark">F</div>
           <span className="mobile-topbar__name">FarmAsyst North</span>
         </div>
-        <div className="mobile-topbar__avatar" style={{ background: roleColor }}>
-          {(user.full_name ?? user.first_name ?? '?').charAt(0).toUpperCase()}
+        <div className="mobile-topbar__avatar" style={{ background: roleColor, overflow: 'hidden', position: 'relative' }}>
+          {user.profile_photo
+            ? <img src={user.profile_photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                onError={e => { e.currentTarget.style.display = 'none'; }} />
+            : (user.full_name ?? user.first_name ?? '?').charAt(0).toUpperCase()
+          }
         </div>
       </div>
 

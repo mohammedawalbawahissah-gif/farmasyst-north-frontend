@@ -8,6 +8,8 @@ interface AuthContextType {
   loading: boolean;
   login: (payload: LoginPayload) => Promise<{ user: User }>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<User>;
+  setUser: (u: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,13 +17,14 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => ({ user: null as unknown as User }),
   logout: async () => {},
+  refreshUser: async () => null as unknown as User,
+  setUser: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount: if a valid access token exists, restore the session
   useEffect(() => {
     const restore = async () => {
       if (!tokens.getAccess()) { setLoading(false); return; }
@@ -48,8 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const me = await authService.me();
+    setUser(me);
+    return me;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );
