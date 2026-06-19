@@ -136,6 +136,10 @@ export default function ConsumerMarketplace() {
 
       const orderId = order?.id;
 
+      if (!orderId) {
+        throw new Error('Order was created but ID was not returned. Please contact support.');
+      }
+
       // Now initiate the actual payment
       if (modal.paymentMethod === 'cash_on_delivery') {
         setStep('done');
