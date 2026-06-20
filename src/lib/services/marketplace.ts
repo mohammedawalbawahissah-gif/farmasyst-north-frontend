@@ -32,7 +32,7 @@ export const marketplaceService = {
   /**
    * Initiate real payment for an existing order.
    * - MoMo: sends a prompt to the buyer's phone (requires phone_number in payload)
-   * - Card: returns authorization_url to redirect buyer to Paystack
+   * - Card: returns checkout_url to redirect buyer to Hubtel Checkout
    * - Bank transfer: returns bank account details
    * - Cash on delivery: no-op
    */
@@ -40,8 +40,9 @@ export const marketplaceService = {
     api.post(`/marketplace/orders/${orderId}/initiate_payment/`, payload).then(r => r.data),
 
   /**
-   * Verify a card payment after Paystack redirects back.
-   * Call this when the buyer returns from Paystack with a reference in the URL.
+   * Check the current status of a card order after the buyer returns from
+   * Hubtel Checkout. Real confirmation arrives asynchronously via webhook;
+   * this just reports the order's status as of the call.
    */
   verifyPayment: (orderId: string, reference: string) =>
     api.post(`/marketplace/orders/${orderId}/verify_payment/`, { reference }).then(r => r.data),

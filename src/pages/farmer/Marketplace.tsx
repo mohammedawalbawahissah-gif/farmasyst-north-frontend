@@ -25,7 +25,7 @@ const EGG_SIZES = ['small','medium','large','jumbo'];
 
 const PAYMENT_OPTIONS = [
   { key: 'accepts_momo',          label: '📱 MoMo',         hint: 'MTN Mobile Money' },
-  { key: 'accepts_card',          label: '💳 Card',          hint: 'Paystack' },
+  { key: 'accepts_card',          label: '💳 Card',          hint: 'Hubtel' },
   { key: 'accepts_bank_transfer', label: '🏦 Bank Transfer', hint: 'Direct bank' },
   { key: 'accepts_cod',           label: '💵 Cash on Delivery', hint: 'Pay on pickup/delivery' },
 ];

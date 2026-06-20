@@ -177,14 +177,14 @@ Ref: ${result.reference}`
 
       if (modal.paymentMethod === 'card') {
         const result = await marketplaceService.initiatePayment(orderId, {}) as any;
-        // Redirect to Paystack authorization URL
-        if (result.authorization_url) {
+        // Redirect to Hubtel checkout URL
+        if (result.checkout_url) {
           setStep('done');
-          setMsg('Redirecting to Paystack for secure card payment...');
+          setMsg('Redirecting to Hubtel for secure card payment...');
           setMsgType('success');
           listings.refetch();
           setTimeout(() => {
-            window.open(result.authorization_url, '_blank');
+            window.open(result.checkout_url, '_blank');
           }, 800);
         }
         return;
@@ -341,7 +341,7 @@ Ref: ${result.reference}`
                   <div className="payment-panel">
                     <div className="payment-panel__title">
                       {modal.paymentMethod === 'momo' && '📱 Enter your MTN Mobile Money number. A payment prompt will be sent to your phone.'}
-                      {modal.paymentMethod === 'card' && '💳 Click Pay to be redirected to Paystack for secure card payment.'}
+                      {modal.paymentMethod === 'card' && '💳 Click Pay to be redirected to Hubtel for secure card payment.'}
                       {modal.paymentMethod === 'bank_transfer' && '🏦 Transfer to: FarmAsyst North · Stanbic Bank · Acc: 9040008877142 · Enter your reference below.'}
                     </div>
                   </div>
@@ -472,7 +472,7 @@ Ref: ${result.reference}`
                     <div className="payment-toggle">
                       {([
                         { value: 'momo',             icon: '📱', title: 'MTN MoMo',         sub: 'Mobile money prompt',  accepted: modal.produce.accepts_momo ?? true },
-                        { value: 'card',             icon: '💳', title: 'Card (Paystack)',   sub: 'Visa / Mastercard',    accepted: modal.produce.accepts_card ?? false },
+                        { value: 'card',             icon: '💳', title: 'Card (Hubtel)',   sub: 'Visa / Mastercard',    accepted: modal.produce.accepts_card ?? false },
                         { value: 'bank_transfer',    icon: '🏦', title: 'Bank Transfer',     sub: 'Direct bank payment',  accepted: modal.produce.accepts_bank_transfer ?? false },
                         { value: 'cash_on_delivery', icon: '💵', title: 'Cash on Delivery', sub: 'Pay on receipt',        accepted: modal.produce.accepts_cod ?? true },
                       ] as const).map(opt => (
@@ -507,7 +507,7 @@ Ref: ${result.reference}`
                       <span>Fulfilment</span><span>{modal.deliveryType === 'delivery' ? 'Home Delivery' : 'Farm Pickup'}</span>
                     </div>
                     <div className="order-summary__row">
-                      <span>Payment</span><span>{{ momo: 'MTN MoMo', card: 'Card (Paystack)', bank_transfer: 'Bank Transfer', cash_on_delivery: 'Cash on Delivery' }[modal.paymentMethod] ?? modal.paymentMethod}</span>
+                      <span>Payment</span><span>{{ momo: 'MTN MoMo', card: 'Card (Hubtel)', bank_transfer: 'Bank Transfer', cash_on_delivery: 'Cash on Delivery' }[modal.paymentMethod] ?? modal.paymentMethod}</span>
                     </div>
                     <div className="order-summary__total">
                       <span>Total</span>
