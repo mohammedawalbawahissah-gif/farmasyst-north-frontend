@@ -241,6 +241,7 @@ export interface Produce {
   photo?: string | null;
   contact_phone?: string | null;
   accepts_momo?: boolean;
+  accepts_hubtel_momo?: boolean;
   accepts_card?: boolean;
   accepts_bank_transfer?: boolean;
   accepts_cod?: boolean;
@@ -260,7 +261,7 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'dispatched' | 'delivered' | 'cancelled';
   delivery_type: 'pickup' | 'delivery'; delivery_address: string;
   total_amount: string;
-  payment_method: 'instant' | 'cash_on_delivery' | 'momo' | 'card' | 'bank_transfer' | string;
+  payment_method: 'instant' | 'cash_on_delivery' | 'momo' | 'hubtel_momo' | 'card' | 'bank_transfer' | string;
   payment_status: 'unpaid' | 'paid' | 'refunded';
   notes: string; created_at: string;
 }

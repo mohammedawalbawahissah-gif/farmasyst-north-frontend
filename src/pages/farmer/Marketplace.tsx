@@ -24,7 +24,8 @@ const PRODUCE_TYPES = [
 const EGG_SIZES = ['small','medium','large','jumbo'];
 
 const PAYMENT_OPTIONS = [
-  { key: 'accepts_momo',          label: '📱 MoMo',         hint: 'MTN Mobile Money' },
+  { key: 'accepts_momo',          label: '📱 MoMo',         hint: 'MTN Mobile Money (Direct)' },
+  { key: 'accepts_hubtel_momo',   label: '📲 Mobile Money (Other Networks)', hint: 'Telecel / AirtelTigo via Hubtel' },
   { key: 'accepts_card',          label: '💳 Card',          hint: 'Hubtel' },
   { key: 'accepts_bank_transfer', label: '🏦 Bank Transfer', hint: 'Direct bank' },
   { key: 'accepts_cod',           label: '💵 Cash on Delivery', hint: 'Pay on pickup/delivery' },
@@ -66,6 +67,7 @@ export default function FarmerMarketplace() {
   const [contactPhone, setContactPhone] = useState('');
   const [paymentMethods, setPaymentMethods] = useState({
     accepts_momo: true,
+    accepts_hubtel_momo: false,
     accepts_card: false,
     accepts_bank_transfer: false,
     accepts_cod: true,
@@ -94,14 +96,14 @@ export default function FarmerMarketplace() {
     setName(''); setType('broilers'); setQty(''); setUnit('bird');
     setPrice(''); setDesc(''); setEggSize(''); setPhoto(null); setPreview(null); setFarmId('');
     setContactPhone('');
-    setPaymentMethods({ accepts_momo: true, accepts_card: false, accepts_bank_transfer: false, accepts_cod: true });
+    setPaymentMethods({ accepts_momo: true, accepts_hubtel_momo: false, accepts_card: false, accepts_bank_transfer: false, accepts_cod: true });
     if (photoRef.current) photoRef.current.value = '';
   };
 
   const handleCreate = async () => {
     if (!name || !qty || !price) return;
     if (isEggs && !eggSize) { setError('Please select an egg size.'); return; }
-    if (!paymentMethods.accepts_momo && !paymentMethods.accepts_card &&
+    if (!paymentMethods.accepts_momo && !paymentMethods.accepts_hubtel_momo && !paymentMethods.accepts_card &&
         !paymentMethods.accepts_bank_transfer && !paymentMethods.accepts_cod) {
       setError('Please select at least one accepted payment method.'); return;
     }
@@ -116,6 +118,7 @@ export default function FarmerMarketplace() {
       if (photo) fd.append('photo', photo);
       if (contactPhone) fd.append('contact_phone', contactPhone);
       fd.append('accepts_momo',          String(paymentMethods.accepts_momo));
+      fd.append('accepts_hubtel_momo',   String(paymentMethods.accepts_hubtel_momo));
       fd.append('accepts_card',          String(paymentMethods.accepts_card));
       fd.append('accepts_bank_transfer', String(paymentMethods.accepts_bank_transfer));
       fd.append('accepts_cod',           String(paymentMethods.accepts_cod));
@@ -327,6 +330,7 @@ export default function FarmerMarketplace() {
                   <td>
                     <span style={{display:'inline-flex',gap:4,flexWrap:'wrap'}}>
                       {(p as {accepts_momo?:boolean}).accepts_momo          && <Badge variant="warning">📱 MoMo</Badge>}
+                      {(p as {accepts_hubtel_momo?:boolean}).accepts_hubtel_momo && <Badge variant="warning">📲 MoMo (Other)</Badge>}
                       {(p as {accepts_card?:boolean}).accepts_card           && <Badge variant="info">💳 Card</Badge>}
                       {(p as {accepts_bank_transfer?:boolean}).accepts_bank_transfer && <Badge variant="info">🏦 Bank</Badge>}
                       {(p as {accepts_cod?:boolean}).accepts_cod             && <Badge variant="success">💵 CoD</Badge>}

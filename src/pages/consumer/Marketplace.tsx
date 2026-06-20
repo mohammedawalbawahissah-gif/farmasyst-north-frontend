@@ -24,8 +24,27 @@ const PRODUCE_TYPES = [
 ];
 
 type DeliveryType  = 'pickup' | 'delivery';
-type PaymentMethod = 'momo' | 'card' | 'bank_transfer' | 'cash_on_delivery';
+type PaymentMethod = 'momo' | 'hubtel_momo' | 'card' | 'bank_transfer' | 'cash_on_delivery';
 type Step          = 'order' | 'payment' | 'done';
+type GhanaNetwork   = 'MTN' | 'Telecel' | 'AirtelTigo';
+
+/**
+ * Auto-detect a Ghanaian mobile network from a phone number's prefix.
+ * Used to pre-suggest the network for the Hubtel Mobile Money (Other
+ * Networks) option — the buyer can always override via the dropdown,
+ * since prefixes occasionally get reassigned or ported.
+ */
+function detectGhanaNetwork(phoneRaw: string): GhanaNetwork | null {
+  let p = phoneRaw.replace(/\s+/g, '');
+  if (p.startsWith('+233')) p = '0' + p.slice(4);
+  else if (p.startsWith('233')) p = '0' + p.slice(3);
+  if (!p.startsWith('0') || p.length < 3) return null;
+  const prefix = p.slice(0, 3);
+  if (['024', '054', '055', '059'].includes(prefix)) return 'MTN';
+  if (['020', '050'].includes(prefix)) return 'Telecel';
+  if (['026', '027', '056', '057'].includes(prefix)) return 'AirtelTigo';
+  return null;
+}
 
 interface OrderModal {
   produce:       any;
@@ -56,6 +75,8 @@ export default function ConsumerMarketplace() {
   const [momoPhone,  setMomoPhone]  = useState('');
   const [momoErr,    setMomoErr]    = useState('');
   const [momoSent,   setMomoSent]   = useState(false);
+  // Manual network override for the Hubtel Mobile Money (Other Networks) option
+  const [hubtelNetworkOverride, setHubtelNetworkOverride] = useState<'' | GhanaNetwork>('');
 
   const all = toArray<Produce>(listings.data).filter(p => {
     const s = search.toLowerCase();
@@ -73,6 +94,7 @@ export default function ConsumerMarketplace() {
     // Default to the first payment method the seller actually accepts
     const defaultPayment: PaymentMethod =
       produce.accepts_momo          ? 'momo' :
+      produce.accepts_hubtel_momo   ? 'hubtel_momo' :
       produce.accepts_card          ? 'card' :
       produce.accepts_bank_transfer ? 'bank_transfer' :
       'cash_on_delivery';
@@ -88,6 +110,8 @@ export default function ConsumerMarketplace() {
     setModal(null);
     setStep('order');
     setMomoSent(false);
+    setMomoPhone('');
+    setHubtelNetworkOverride('');
   };
 
   // Lock body scroll when modal is open
@@ -175,6 +199,20 @@ Ref: ${result.reference}`
         return;
       }
 
+      if (modal.paymentMethod === 'hubtel_momo') {
+        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone ?? undefined }) as any;
+        if (result.checkout_url) {
+          setStep('done');
+          setMsg('Redirecting to Hubtel to complete your Mobile Money payment...');
+          setMsgType('success');
+          listings.refetch();
+          setTimeout(() => {
+            window.open(result.checkout_url, '_blank');
+          }, 800);
+        }
+        return;
+      }
+
       if (modal.paymentMethod === 'card') {
         const result = await marketplaceService.initiatePayment(orderId, {}) as any;
         // Redirect to Hubtel checkout URL
@@ -203,6 +241,9 @@ Ref: ${result.reference}`
     if (!modal) return;
     if (modal.paymentMethod === 'momo') {
       if (!momoPhone.trim() || momoPhone.length < 10) { setMomoErr('Please enter a valid MoMo number.'); return; }
+      placeOrder(momoPhone);
+    } else if (modal.paymentMethod === 'hubtel_momo') {
+      if (!momoPhone.trim() || momoPhone.length < 10) { setMomoErr('Please enter a valid Mobile Money number.'); return; }
       placeOrder(momoPhone);
     } else if (modal.paymentMethod === 'card') {
       placeOrder(null);
@@ -324,7 +365,9 @@ Ref: ${result.reference}`
               <>
                 <div className="order-modal__header">
                   <span className="order-modal__title">
-                    {modal.paymentMethod === 'momo' ? '📱 MTN Mobile Money' : modal.paymentMethod === 'card' ? '💳 Card Payment' : '🏦 Bank Transfer'}
+                    {modal.paymentMethod === 'momo' ? '📱 MTN Mobile Money' :
+                     modal.paymentMethod === 'hubtel_momo' ? '📲 Mobile Money (Other Networks)' :
+                     modal.paymentMethod === 'card' ? '💳 Card Payment' : '🏦 Bank Transfer'}
                   </span>
                   <button className="order-modal__close" onClick={closeModal}><X size={20} /></button>
                 </div>
@@ -341,6 +384,7 @@ Ref: ${result.reference}`
                   <div className="payment-panel">
                     <div className="payment-panel__title">
                       {modal.paymentMethod === 'momo' && '📱 Enter your MTN Mobile Money number. A payment prompt will be sent to your phone.'}
+                      {modal.paymentMethod === 'hubtel_momo' && '📲 Enter your Mobile Money number (Telecel, AirtelTigo, or MTN). You\'ll be redirected to Hubtel to complete payment on your network.'}
                       {modal.paymentMethod === 'card' && '💳 Click Pay to be redirected to Hubtel for secure card payment.'}
                       {modal.paymentMethod === 'bank_transfer' && '🏦 Transfer to: FarmAsyst North · Stanbic Bank · Acc: 9040008877142 · Enter your reference below.'}
                     </div>
@@ -356,6 +400,30 @@ Ref: ${result.reference}`
                         disabled={momoSent && placing} />
                     </div>
                   )}
+                  {modal.paymentMethod === 'hubtel_momo' && (
+                    <div className="form-field">
+                      <label>Mobile Money number</label>
+                      <input type="tel" placeholder="020XXXXXXX / 026XXXXXXX / 024XXXXXXX"
+                        value={momoPhone} onChange={e => setMomoPhone(e.target.value)}
+                        disabled={momoSent && placing} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', marginTop: 'var(--sp-sm)' }}>
+                        <span style={{ fontSize: 13, color: 'var(--col-muted)' }}>
+                          Network: {hubtelNetworkOverride || detectGhanaNetwork(momoPhone) || 'Not detected'}
+                          {!hubtelNetworkOverride && detectGhanaNetwork(momoPhone) && ' (auto-detected)'}
+                        </span>
+                        <select
+                          value={hubtelNetworkOverride}
+                          onChange={e => setHubtelNetworkOverride(e.target.value as '' | GhanaNetwork)}
+                          style={{ fontSize: 13 }}
+                        >
+                          <option value="">Auto-detect</option>
+                          <option value="MTN">MTN</option>
+                          <option value="Telecel">Telecel</option>
+                          <option value="AirtelTigo">AirtelTigo</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                   {modal.paymentMethod === 'bank_transfer' && (
                     <div className="form-field">
                       <label>Transfer reference (optional)</label>
@@ -369,7 +437,7 @@ Ref: ${result.reference}`
                   <Button variant="secondary" onClick={() => { setStep('order'); setMomoErr(''); }}>Back</Button>
                   <Button
                     style={{ flex: 1 }}
-                    disabled={placing || (modal.paymentMethod === 'momo' && (!momoPhone.trim() || momoPhone.length < 10))}
+                    disabled={placing || ((modal.paymentMethod === 'momo' || modal.paymentMethod === 'hubtel_momo') && (!momoPhone.trim() || momoPhone.length < 10))}
                     onClick={handleMomoPay}
                   >
                     {placing ? 'Sending prompt…' : `Pay GHS ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
@@ -472,6 +540,7 @@ Ref: ${result.reference}`
                     <div className="payment-toggle">
                       {([
                         { value: 'momo',             icon: '📱', title: 'MTN MoMo',         sub: 'Mobile money prompt',  accepted: modal.produce.accepts_momo ?? true },
+                        { value: 'hubtel_momo',      icon: '📲', title: 'Mobile Money (Other)', sub: 'Telecel / AirtelTigo', accepted: modal.produce.accepts_hubtel_momo ?? false },
                         { value: 'card',             icon: '💳', title: 'Card (Hubtel)',   sub: 'Visa / Mastercard',    accepted: modal.produce.accepts_card ?? false },
                         { value: 'bank_transfer',    icon: '🏦', title: 'Bank Transfer',     sub: 'Direct bank payment',  accepted: modal.produce.accepts_bank_transfer ?? false },
                         { value: 'cash_on_delivery', icon: '💵', title: 'Cash on Delivery', sub: 'Pay on receipt',        accepted: modal.produce.accepts_cod ?? true },
@@ -507,7 +576,7 @@ Ref: ${result.reference}`
                       <span>Fulfilment</span><span>{modal.deliveryType === 'delivery' ? 'Home Delivery' : 'Farm Pickup'}</span>
                     </div>
                     <div className="order-summary__row">
-                      <span>Payment</span><span>{{ momo: 'MTN MoMo', card: 'Card (Hubtel)', bank_transfer: 'Bank Transfer', cash_on_delivery: 'Cash on Delivery' }[modal.paymentMethod] ?? modal.paymentMethod}</span>
+                      <span>Payment</span><span>{{ momo: 'MTN MoMo', hubtel_momo: 'Mobile Money (Other)', card: 'Card (Hubtel)', bank_transfer: 'Bank Transfer', cash_on_delivery: 'Cash on Delivery' }[modal.paymentMethod] ?? modal.paymentMethod}</span>
                     </div>
                     <div className="order-summary__total">
                       <span>Total</span>
