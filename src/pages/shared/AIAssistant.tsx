@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { PageHeader, Card, Button, SectionTitle } from '../../components/ui';
 import { useAuth } from '../../lib/auth-context';
 import { aiService, type CameraImage } from '../../lib/services/ai';
@@ -8,7 +8,7 @@ import { toArray } from '../../lib/api';
 import type { Farm } from '../../types';
 import {
   Bot, Send, AlertTriangle, TrendingUp, RefreshCw,
-  Camera, Upload, X, Play, Pause, Image as ImageIcon,
+  Camera, Upload, X, Pause, Image as ImageIcon,
   Video, CheckCircle, Trash2,
 } from 'lucide-react';
 import '../farmer/farmer.css';
