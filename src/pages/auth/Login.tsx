@@ -71,8 +71,9 @@ export default function Login() {
       const { user: me } = await login({ email, password });
       navigate(`/${me.role}`);
     } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setLoginError(detail ?? 'Invalid email or password.');
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
+      const isPending = detail.toLowerCase().includes('pending') || detail.toLowerCase().includes('verification');
+      setLoginError(isPending ? '__PENDING__' : (detail || 'Invalid email or password.'));
     } finally {
       setLoginBusy(false);
     }
@@ -191,7 +192,18 @@ export default function Login() {
                 value={password} onChange={e => setPassword(e.target.value)}
                 required disabled={loginBusy} />
             </div>
-            {loginError && <p className="login-form__error">{loginError}</p>}
+            {loginError === '__PENDING__' ? (
+              <div style={{
+                padding: '12px 14px', borderRadius: 8, marginBottom: 8,
+                background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e',
+                fontSize: 13, lineHeight: 1.5,
+              }}>
+                <strong>Account Pending Verification</strong><br />
+                Your account is awaiting admin verification. You will be able to log in once a FarmAsyst North administrator approves your account. Please check back later.
+              </div>
+            ) : loginError ? (
+              <p className="login-form__error">{loginError}</p>
+            ) : null}
             <button type="submit" className="login-form__submit"
               disabled={loginBusy || !email || !password}>
               {loginBusy ? 'Signing in…' : 'Sign in'}

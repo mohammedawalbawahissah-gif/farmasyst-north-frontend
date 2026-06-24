@@ -15,6 +15,10 @@ export const farmsService = {
     api.get<Paginated<FarmActivityLog>>(`/farms/${farmId}/activity-logs/`).then(r => r.data),
   createLog: (farmId: string, data: Partial<FarmActivityLog>) =>
     api.post<FarmActivityLog>(`/farms/${farmId}/activity-logs/`, data).then(r => r.data),
+  createLogFormData: (farmId: string, fd: FormData) =>
+    api.post<FarmActivityLog>(`/farms/${farmId}/activity-logs/`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
   updateLog: (farmId: string, logId: string, data: Partial<FarmActivityLog>) =>
     api.patch<FarmActivityLog>(`/farms/${farmId}/activity-logs/${logId}/`, data).then(r => r.data),
 

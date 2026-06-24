@@ -66,6 +66,18 @@ export default function FarmManager() {
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
+  const [mediaFile,   setMediaFile]   = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setMediaFile(file);
+    if (file) {
+      setMediaPreview(URL.createObjectURL(file));
+    } else {
+      setMediaPreview(null);
+    }
+  };
 
   const farmList   = toArray<Farm>(farms.data);
   const activeFarm = farmList.find(f => f.id === farmId);
@@ -107,10 +119,9 @@ export default function FarmManager() {
     if (!farmId || !canSave) return;
     setSaving(true); setError(''); setSuccess('');
     try {
-      await farmsService.createLog(farmId, {
+      const payload: Record<string, unknown> = {
         farm: farmId,
         date,
-        // Poultry counts
         broiler_count:       showBroilers     ? (parseInt(broilerCount)     || 0) : 0,
         layer_count:         showLayers       ? (parseInt(layerCount)       || 0) : 0,
         guinea_fowl_count:   showGuineaFowl   ? (parseInt(guineaFowlCount)  || 0) : 0,
@@ -121,25 +132,35 @@ export default function FarmManager() {
         local_cock_count:    showLocalBirds   ? (parseInt(localCockCount)   || 0) : 0,
         local_hen_count:     showLocalBirds   ? (parseInt(localHenCount)    || 0) : 0,
         day_old_chick_count: showDayOldChicks ? (parseInt(dayOldChickCount) || 0) : 0,
-        // Common
         mortality:           parseInt(mortality),
         feed_kg:             feedKg,
         eggs_collected:      parseInt(eggs),
         medication_given:    meds,
         notes,
-        // Hatchery
         eggs_in_incubation:  showHatcherySection  ? (parseInt(eggsInIncubation) || 0) : 0,
         eggs_set_today:      showHatcherySection  ? (parseInt(eggsSetToday)     || 0) : 0,
         chicks_hatched:      showHatcherySection  ? (parseInt(chicksHatched)    || 0) : 0,
         hatch_rejects:       showHatcherySection  ? (parseInt(hatchRejects)     || 0) : 0,
         chicks_sold:         showHatcherySection  ? (parseInt(chicksSold)       || 0) : 0,
-        // Meat processing
         birds_received:      showProcessingSection ? (parseInt(birdsReceived)       || 0) : 0,
         birds_processed:     showProcessingSection ? (parseInt(birdsProcessed)      || 0) : 0,
         carcass_weight_kg:   showProcessingSection ? (parseFloat(carcassWeightKg)   || 0) : 0,
         units_packaged:      showProcessingSection ? (parseInt(unitsPackaged)       || 0) : 0,
         cold_storage_units:  showProcessingSection ? (parseInt(coldStorageUnits)    || 0) : 0,
-      });
+      };
+
+      if (mediaFile) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => fd.append(k, String(v)));
+        const mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
+        fd.append('media_file', mediaFile);
+        fd.append('media_type', mediaType);
+        fd.append('media_captured_at', new Date().toISOString());
+        await farmsService.createLogFormData(farmId, fd);
+      } else {
+        await farmsService.createLog(farmId, payload as any);
+      }
+
       setSuccess('Activity logged successfully!');
       setBroilerCount(''); setLayerCount(''); setGuineaFowlCount('');
       setTurkeyCount(''); setDuckCount(''); setGeeseCount('');
@@ -147,6 +168,7 @@ export default function FarmManager() {
       setMortality('0'); setFeedKg(''); setEggs('0'); setMeds(''); setNotes('');
       setEggsInIncubation(''); setEggsSetToday(''); setChicksHatched(''); setHatchRejects(''); setChicksSold('');
       setBirdsReceived(''); setBirdsProcessed(''); setCarcassWeightKg(''); setUnitsPackaged(''); setColdStorageUnits('');
+      setMediaFile(null); setMediaPreview(null);
       logs.refetch();
     } catch {
       setError('Failed to save log. Please try again.');
@@ -380,6 +402,33 @@ export default function FarmManager() {
               <div className="form-field">
                 <label>Additional notes</label>
                 <textarea rows={3} placeholder="Anything else to note about today's activity…" value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+
+              {/* ── Media upload ──────────────────────────────────────────── */}
+              <div className="form-field" style={{ marginTop: 'var(--sp-sm)' }}>
+                <label>Farm Activity Photo / Video</label>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleMediaChange}
+                  style={{ fontSize: 13 }}
+                />
+                <p style={{ fontSize: 11, color: 'var(--col-muted)', margin: '4px 0 0' }}>
+                  Optional — attach a photo or short video of today's farm activity. Timestamp will be recorded automatically.
+                </p>
+                {mediaPreview && mediaFile && (
+                  <div style={{ marginTop: 8 }}>
+                    {mediaFile.type.startsWith('image/') ? (
+                      <img src={mediaPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, objectFit: 'cover' }} />
+                    ) : (
+                      <video src={mediaPreview} controls style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8 }} />
+                    )}
+                    <button onClick={() => { setMediaFile(null); setMediaPreview(null); }}
+                      style={{ display: 'block', marginTop: 4, fontSize: 12, color: 'var(--col-danger)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      Remove
+                    </button>
+                  </div>
+                )}
               </div>
 
               <Button disabled={!canSave || saving} onClick={handleLog} style={{ width: '100%', marginTop: 'var(--sp-sm)' }}>
