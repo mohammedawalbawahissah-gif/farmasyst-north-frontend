@@ -8,19 +8,37 @@ export interface RegisterPayload {
   phone: string; role: string; password: string; password2: string; language?: string;
 }
 
+export interface RegisterResult {
+  requires_verification: boolean;
+  detail: string;
+  user?: User;
+  access?: string;
+  refresh?: string;
+}
+
 export const authService = {
   async login(payload: LoginPayload): Promise<{ user: User; tokens: AuthTokens }> {
-    // Step 1: get tokens from simplejwt
     const { data: tkn } = await api.post<AuthTokens>('/auth/login/', payload);
     tokens.setTokens(tkn.access, tkn.refresh);
-    // Step 2: fetch user profile
     const { data: user } = await api.get<User>('/auth/me/');
     return { user, tokens: tkn };
   },
 
-  async register(payload: RegisterPayload): Promise<{ user: User; tokens: AuthTokens }> {
-    const { data } = await api.post<{ user: User; tokens: AuthTokens }>('/auth/register/', payload);
-    tokens.setTokens(data.tokens.access, data.tokens.refresh);
+  /**
+   * Register a new user.
+   *
+   * - Farmer / Investor / Consumer  → backend returns tokens immediately,
+   *   we store them and return requires_verification: false + the user object.
+   * - Monitoring Officer / Vet / Input Dealer → backend returns a pending
+   *   message only (no tokens), requires_verification: true.
+   */
+  async register(payload: RegisterPayload): Promise<RegisterResult> {
+    const { data } = await api.post<RegisterResult>('/auth/register/', payload);
+
+    if (!data.requires_verification && data.access && data.refresh) {
+      tokens.setTokens(data.access, data.refresh);
+    }
+
     return data;
   },
 
@@ -65,4 +83,3 @@ export const authService = {
     return profile;
   },
 };
-// appended

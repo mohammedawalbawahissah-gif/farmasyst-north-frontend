@@ -38,13 +38,19 @@ export interface DiseaseDetectionResult {
   immediate_actions: string[];
   preventive_recommendations: string[];
   vet_consultation_required: boolean;
-  visual_findings?: string | null;
   summary: string;
   farm_id: string;
   farm_name: string;
-  has_media: boolean;
-  media_count: number;
   generated_at: string;
+}
+
+export interface DiseaseMediaPayload {
+  /** Base64-encoded image or video data (no data:// prefix) */
+  media_data: string;
+  /** MIME type e.g. image/jpeg, video/webm */
+  media_type: string;
+  /** How the media was captured */
+  capture_mode: 'camera' | 'upload';
 }
 
 export interface ChatMessage {
@@ -58,40 +64,19 @@ export interface ChatResponse {
   session_id: string;
 }
 
-export interface CameraImage {
-  data: string;     // base64 string (may include data: URI prefix)
-  mime_type: string;
-}
-
 export const aiService = {
   scoreCreditworthiness: (farmer_id: string) =>
     api.post<CreditworthinessResult>('/ai/creditworthiness/', { farmer_id }).then(r => r.data),
 
   /**
-   * Logs-only disease detection (original behaviour).
+   * Run disease detection for a farm.
+   * Optionally include media (photo/video) for visual analysis — the backend
+   * will forward it to the AI model alongside the farm log data.
    */
-  detectDisease: (farm_id: string) =>
-    api.post<DiseaseDetectionResult>('/ai/disease-detection/', { farm_id }).then(r => r.data),
-
-  /**
-   * Disease detection with uploaded image/video files (multipart).
-   */
-  detectDiseaseWithFiles: (farm_id: string, files: File[]) => {
-    const form = new FormData();
-    form.append('farm_id', farm_id);
-    files.forEach(f => form.append('media', f));
-    return api.post<DiseaseDetectionResult>('/ai/disease-detection/', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then(r => r.data);
-  },
-
-  /**
-   * Disease detection with real-time camera captures (base64).
-   */
-  detectDiseaseWithCamera: (farm_id: string, images: CameraImage[]) =>
+  detectDisease: (farm_id: string, media?: DiseaseMediaPayload) =>
     api.post<DiseaseDetectionResult>('/ai/disease-detection/', {
       farm_id,
-      images,
+      ...(media ?? {}),
     }).then(r => r.data),
 
   chat: (message: string, session_id?: string) =>

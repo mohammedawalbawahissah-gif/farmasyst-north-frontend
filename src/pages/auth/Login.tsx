@@ -4,22 +4,24 @@ import { useAuth } from '../../lib/auth-context';
 import { authService } from '../../lib/services/auth';
 import './Login.css';
 
-type Mode = 'login' | 'register' | 'success';
+type Mode = 'login' | 'register' | 'pending';
 
-// Admin is excluded — created by admins only
+// Roles that need admin approval before they can log in
+const GATED_ROLES = new Set(['monitoring_officer', 'vet', 'input_dealer']);
+
 const ROLES = [
-  { value: 'farmer',             label: '🐔 Poultry Farmer',        desc: 'Apply for credit, manage farm, access training' },
-  { value: 'investor',           label: '💼 Investor / Partner',    desc: 'Fund farmers, track portfolio, view reports' },
-  { value: 'consumer',           label: '🛒 Consumer / Buyer',      desc: 'Browse and order quality poultry produce' },
-  { value: 'monitoring_officer', label: '🔍 Monitoring Officer',    desc: 'Conduct farm audits and submit field reports (admin approval required)' },
-  { value: 'vet',                label: '🩺 Veterinarian',          desc: 'Offer vet services to poultry farmers (admin approval required)' },
-  { value: 'input_dealer',       label: '🏪 Farm Input Dealer',     desc: 'Sell feed, vaccines & equipment on the platform (admin approval required)' },
+  { value: 'farmer',             label: '🐔 Poultry Farmer',      desc: 'Apply for credit, manage farm, access training' },
+  { value: 'investor',           label: '💼 Investor / Partner',  desc: 'Fund farmers, track portfolio, view reports' },
+  { value: 'consumer',           label: '🛒 Consumer / Buyer',    desc: 'Browse and order quality poultry produce' },
+  { value: 'monitoring_officer', label: '🔍 Monitoring Officer',  desc: 'Conduct farm audits and submit field reports (admin approval required)' },
+  { value: 'vet',                label: '🩺 Veterinarian',        desc: 'Offer vet services to poultry farmers (admin approval required)' },
+  { value: 'input_dealer',       label: '🏪 Farm Input Dealer',   desc: 'Sell feed, vaccines & equipment on the platform (admin approval required)' },
 ];
 
 function parseApiError(err: unknown): string {
   const data = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
   if (!data) return 'Something went wrong. Please try again.';
-  if (data['detail'])        return String(data['detail']);
+  if (data['detail'])           return String(data['detail']);
   if (data['non_field_errors']) {
     const v = data['non_field_errors'];
     return Array.isArray(v) ? String(v[0]) : String(v);
@@ -33,14 +35,14 @@ function parseApiError(err: unknown): string {
 }
 
 export default function Login() {
-  const { login } = useAuth();
-  const navigate  = useNavigate();
+  const { login, setUser } = useAuth();
+  const navigate = useNavigate();
 
   const [mode, setMode] = useState<Mode>('login');
 
   // ── Login ──────────────────────────────────────────────────────
-  const [email,      setEmail]     = useState('');
-  const [password,   setPassword]  = useState('');
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginBusy,  setLoginBusy]  = useState(false);
 
@@ -54,11 +56,13 @@ export default function Login() {
   const [regPass2,  setRegPass2]  = useState('');
   const [regError,  setRegError]  = useState('');
   const [regBusy,   setRegBusy]   = useState(false);
-  const [regDone,   setRegDone]   = useState<{ name: string; email: string } | null>(null);
+  const [pendingName, setPendingName] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
 
   const switchMode = (m: Mode) => {
     setMode(m);
-    setLoginError(''); setRegError('');
+    setLoginError('');
+    setRegError('');
   };
 
   // ── Login submit ───────────────────────────────────────────────
@@ -72,7 +76,7 @@ export default function Login() {
       navigate(`/${me.role}`);
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
-      const isPending = detail.toLowerCase().includes('pending') || detail.toLowerCase().includes('verification');
+      const isPending = detail.toLowerCase().includes('pending') || detail.toLowerCase().includes('suspended');
       setLoginError(isPending ? '__PENDING__' : (detail || 'Invalid email or password.'));
     } finally {
       setLoginBusy(false);
@@ -85,8 +89,8 @@ export default function Login() {
     if (regBusy) return;
 
     if (!firstName.trim() || !lastName.trim()) { setRegError('Please enter your full name.'); return; }
-    if (!regEmail.trim())  { setRegError('Please enter your email address.'); return; }
-    if (!phone.trim())     { setRegError('Please enter your phone number.'); return; }
+    if (!regEmail.trim())   { setRegError('Please enter your email address.'); return; }
+    if (!phone.trim())      { setRegError('Please enter your phone number.'); return; }
     if (regPass.length < 8) { setRegError('Password must be at least 8 characters.'); return; }
     if (regPass !== regPass2) { setRegError('Passwords do not match.'); return; }
 
@@ -94,7 +98,7 @@ export default function Login() {
     setRegBusy(true);
 
     try {
-      await authService.register({
+      const result = await authService.register({
         email: regEmail.trim(),
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -103,17 +107,28 @@ export default function Login() {
         password: regPass,
         password2: regPass2,
       });
-      setRegDone({ name: firstName.trim(), email: regEmail.trim() });
-      setMode('success');
+
+      if (result.requires_verification) {
+        // Gated role — show pending screen
+        setPendingName(firstName.trim());
+        setPendingEmail(regEmail.trim());
+        setMode('pending');
+      } else {
+        // Immediate access — tokens already stored by authService.register()
+        // Fetch the user profile and redirect straight to their portal
+        const me = await authService.me();
+        if (setUser) setUser(me);
+        navigate(`/${me.role}`);
+      }
     } catch (err: unknown) {
       setRegError(parseApiError(err));
     } finally {
       setRegBusy(false);
     }
-  }, [regBusy, firstName, lastName, regEmail, phone, role, regPass, regPass2]);
+  }, [regBusy, firstName, lastName, regEmail, phone, role, regPass, regPass2, navigate, setUser]);
 
-  // ── Success screen ─────────────────────────────────────────────
-  if (mode === 'success' && regDone) {
+  // ── Pending screen (gated roles only) ─────────────────────────
+  if (mode === 'pending') {
     return (
       <div className="login-page">
         <div className="login-page__bg" />
@@ -123,15 +138,14 @@ export default function Login() {
             <h1 className="login-page__title">FarmAsyst North</h1>
           </div>
           <div className="reg-success-card">
-            <div className="reg-success-card__icon">✅</div>
-            <h2 className="reg-success-card__title">Account request submitted!</h2>
+            <div className="reg-success-card__icon">⏳</div>
+            <h2 className="reg-success-card__title">Account pending approval</h2>
             <p className="reg-success-card__body">
-              Hi <strong>{regDone.name}</strong>, your account has been created and is now
-              <strong> pending verification</strong> by a FarmAsyst North administrator.
+              Hi <strong>{pendingName}</strong>, your account has been created and is
+              awaiting review by a FarmAsyst North administrator.
             </p>
             <p className="reg-success-card__body">
-              Once approved, you'll receive a notification and can sign in with{' '}
-              <strong>{regDone.email}</strong>.
+              Once approved, you can sign in with <strong>{pendingEmail}</strong>.
             </p>
             <p className="reg-success-card__note">
               📧 You'll be notified by email or SMS when your account is activated.
@@ -139,7 +153,7 @@ export default function Login() {
             <button
               className="login-form__submit"
               style={{ marginTop: 16 }}
-              onClick={() => { setMode('login'); setRegDone(null); }}
+              onClick={() => switchMode('login')}
             >
               Back to Sign in
             </button>
@@ -192,18 +206,20 @@ export default function Login() {
                 value={password} onChange={e => setPassword(e.target.value)}
                 required disabled={loginBusy} />
             </div>
+
             {loginError === '__PENDING__' ? (
               <div style={{
                 padding: '12px 14px', borderRadius: 8, marginBottom: 8,
                 background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e',
                 fontSize: 13, lineHeight: 1.5,
               }}>
-                <strong>Account Pending Verification</strong><br />
-                Your account is awaiting admin verification. You will be able to log in once a FarmAsyst North administrator approves your account. Please check back later.
+                <strong>Account Pending Approval</strong><br />
+                Your account is awaiting admin approval. You will be notified once it's activated.
               </div>
             ) : loginError ? (
               <p className="login-form__error">{loginError}</p>
             ) : null}
+
             <button type="submit" className="login-form__submit"
               disabled={loginBusy || !email || !password}>
               {loginBusy ? 'Signing in…' : 'Sign in'}
@@ -229,6 +245,17 @@ export default function Login() {
                 </button>
               ))}
             </div>
+
+            {/* Inline notice for gated roles */}
+            {GATED_ROLES.has(role) && (
+              <div style={{
+                padding: '10px 14px', borderRadius: 8, marginBottom: 4,
+                background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e',
+                fontSize: 13, lineHeight: 1.5,
+              }}>
+                ⏳ This role requires admin approval. You'll be notified when your account is activated.
+              </div>
+            )}
 
             <div className="login-form__row">
               <div className="login-form__field">
@@ -293,7 +320,7 @@ export default function Login() {
                 !firstName || !lastName || !regEmail || !phone ||
                 regPass.length < 8 || regPass !== regPass2
               }>
-              {regBusy ? 'Creating account…' : 'Create account'}
+              {regBusy ? 'Creating account…' : GATED_ROLES.has(role) ? 'Submit for approval' : 'Create account'}
             </button>
 
             <p className="login-form__switch">

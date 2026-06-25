@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
-import AIFloatingWidget from '../ai/AIFloatingWidget';
+import AIWidget from '../ai/AIWidget';
 import './AppLayout.css';
 
 export default function AppLayout() {
@@ -15,8 +15,8 @@ export default function AppLayout() {
           </ErrorBoundary>
         </div>
       </main>
-      {/* AI floating chat widget — visible across all portals */}
-      <AIFloatingWidget />
+      {/* Global AI Assistant widget — visible on every portal page */}
+      <AIWidget />
     </div>
   );
 }
