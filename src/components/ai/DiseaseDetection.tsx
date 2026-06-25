@@ -53,6 +53,23 @@ export default function DiseaseDetection({ farmList, role }: Props) {
 
   useEffect(() => () => stopStream(), [stopStream]);
 
+  // ── Attach stream to video element once it mounts ────────────
+  // setCameraActive(true) triggers the render that mounts <video>.
+  // We can't assign srcObject before the element exists, so we watch
+  // for the ref to be populated via a useEffect.
+  useEffect(() => {
+    if (cameraActive && streamRef.current && videoRef.current) {
+      const video = videoRef.current;
+      if (video.srcObject !== streamRef.current) {
+        video.srcObject = streamRef.current;
+        video.play().catch(() => {
+          // autoplay may be blocked briefly — a second attempt usually works
+          setTimeout(() => video.play().catch(() => null), 200);
+        });
+      }
+    }
+  }, [cameraActive]);
+
   // ── Start camera ─────────────────────────────────────────────
   const startCamera = async () => {
     setCameraError('');
@@ -64,10 +81,8 @@ export default function DiseaseDetection({ farmList, role }: Props) {
         : { video: { facingMode: { ideal: 'environment' } }, audio: true };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
+      // Set active AFTER storing the stream — the useEffect above will
+      // wire it to the <video> element once it appears in the DOM.
       setCameraActive(true);
     } catch (err: any) {
       if (err.name === 'NotAllowedError') {
@@ -304,7 +319,15 @@ export default function DiseaseDetection({ farmList, role }: Props) {
             {cameraActive && (
               <div style={{ position: 'relative', marginBottom: 10 }}>
                 <video
-                  ref={videoRef}
+                  ref={el => {
+                    (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+                    // Attach stream immediately when the element mounts —
+                    // handles the case where the useEffect fires before the ref is set
+                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                      el.srcObject = streamRef.current;
+                      el.play().catch(() => setTimeout(() => el.play().catch(() => null), 200));
+                    }
+                  }}
                   autoPlay
                   playsInline
                   muted
