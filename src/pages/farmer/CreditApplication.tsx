@@ -4,15 +4,17 @@ import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { farmsService } from '../../lib/services/farms';
-import type { CreditType, Farm, CreditApplication as CreditApp } from '../../types';
+import type { Farm, CreditApplication as CreditApp } from '../../types';
 import './farmer.css';
 
 type Step = 1 | 2 | 3 | 4;
 
-const CREDIT_TYPES: { value: CreditType; label: string; emoji: string; desc: string }[] = [
-  { value: 'funding',  label: 'Funding',     emoji: '💵', desc: 'Direct capital for startup, flock acquisition, or equipment' },
-  { value: 'inputs',   label: 'Farm Inputs', emoji: '🌾', desc: 'Feed, vaccines, medications, and housing materials in-kind' },
-  { value: 'training', label: 'Training',    emoji: '📚', desc: 'Enrolment in a structured training programme — free' },
+// ── Match admin credit types exactly ──────────────────────────────────────────
+const CREDIT_TYPES: { value: string; label: string; desc: string }[] = [
+  { value: 'direct_financing',  label: 'Direct Financing',    desc: 'Direct capital for startup, flock acquisition, or equipment' },
+  { value: 'farm_inputs',       label: 'Farm Inputs',         desc: 'Feed, vaccines, medications, and housing materials in-kind' },
+  { value: 'structured_training', label: 'Structured Training', desc: 'Enrolment in a structured training programme — free' },
+  { value: 'mixed',             label: 'Mixed',               desc: 'Combination of financing and in-kind support' },
 ];
 const DOC_TYPES = [
   { value: 'ghana_card',    label: 'Ghana Card' },
@@ -27,7 +29,7 @@ export default function CreditApplication() {
   const apps  = useAsync(() => creditService.listApps(), []);
 
   const [step, setStep]               = useState<Step>(1);
-  const [creditType, setCreditType]   = useState<CreditType | ''>('');
+  const [creditType, setCreditType]   = useState<string>('');
   const [farmId, setFarmId]           = useState('');
   const [amount, setAmount]           = useState('');
   const [months, setMonths]           = useState('');
@@ -139,18 +141,19 @@ export default function CreditApplication() {
         {step === 1 && (
           <div className="app-step">
             <h3>What type of support are you applying for?</h3>
-            <div className="credit-type-grid">
-              {CREDIT_TYPES.map(t => (
-                <button
-                  key={t.value}
-                  className={`credit-type-card ${creditType === t.value ? 'credit-type-card--selected' : ''}`}
-                  onClick={() => setCreditType(t.value)}
-                >
-                  <span className="credit-type-card__emoji">{t.emoji}</span>
-                  <strong>{t.label}</strong>
-                  <span className="credit-type-card__desc">{t.desc}</span>
-                </button>
-              ))}
+            <div className="form-field" style={{ maxWidth: 420 }}>
+              <label>Credit Type <span className="required">*</span></label>
+              <select value={creditType} onChange={e => setCreditType(e.target.value)}>
+                <option value="">— Select a credit type —</option>
+                {CREDIT_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              {creditType && (
+                <span style={{ fontSize: 13, color: 'var(--col-muted)', marginTop: 6, display: 'block' }}>
+                  {CREDIT_TYPES.find(t => t.value === creditType)?.desc}
+                </span>
+              )}
             </div>
             <div className="step-actions">
               <Button disabled={!creditType} onClick={() => setStep(2)}>Continue →</Button>
@@ -175,7 +178,7 @@ export default function CreditApplication() {
               </div>
             )}
 
-            {creditType !== 'training' && (
+            {creditType !== 'structured_training' && (
               <div className="form-row">
                 <div className="form-field">
                   <label>Amount requested (GHS)</label>
@@ -198,7 +201,7 @@ export default function CreditApplication() {
               />
             </div>
 
-            {creditType === 'inputs' && (
+            {creditType === 'farm_inputs' && (
               <div className="form-field">
                 <label>Input details</label>
                 <textarea

@@ -62,10 +62,40 @@ export default function AIAssistant() {
   const farmList = toArray<Farm>(farms.data);
 
   // ── Credit Scoring ────────────────────────────────────────────────────────
-  const [creditFarmerId, setCreditFarmerId] = useState(user?.id ?? '');
-  const [creditResult,   setCreditResult]   = useState<any>(null);
-  const [creditBusy,     setCreditBusy]     = useState(false);
-  const [creditError,    setCreditError]    = useState('');
+  const [creditFarmerId,    setCreditFarmerId]    = useState(user?.id ?? '');
+  const [creditFarmerName,  setCreditFarmerName]  = useState('');
+  const [farmerSuggestions, setFarmerSuggestions] = useState<{ id: string; name: string; district?: string }[]>([]);
+  const [farmerSearching,   setFarmerSearching]   = useState(false);
+  const [farmerSearchOpen,  setFarmerSearchOpen]  = useState(false);
+  const [creditResult,      setCreditResult]      = useState<any>(null);
+  const [creditBusy,        setCreditBusy]        = useState(false);
+  const [creditError,       setCreditError]       = useState('');
+
+  const searchFarmers = async (name: string) => {
+    setCreditFarmerName(name);
+    setCreditFarmerId('');
+    if (name.length < 2) { setFarmerSuggestions([]); setFarmerSearchOpen(false); return; }
+    setFarmerSearching(true);
+    try {
+      const { api } = await import('../../lib/api');
+      const res = await api.get('/profiles/farmers/', { params: { search: name } });
+      const results = (Array.isArray(res.data) ? res.data : res.data?.results ?? []);
+      setFarmerSuggestions(results.map((p: any) => ({
+        id: p.user?.id ?? p.user,
+        name: `${p.user?.first_name ?? ''} ${p.user?.last_name ?? ''}`.trim() || p.user?.email,
+        district: p.district,
+      })));
+      setFarmerSearchOpen(true);
+    } catch { setFarmerSuggestions([]); }
+    finally { setFarmerSearching(false); }
+  };
+
+  const selectFarmer = (id: string, name: string) => {
+    setCreditFarmerId(id);
+    setCreditFarmerName(name);
+    setFarmerSuggestions([]);
+    setFarmerSearchOpen(false);
+  };
 
   const runCreditScore = async () => {
     if (!creditFarmerId) return;
@@ -219,14 +249,60 @@ export default function AIAssistant() {
             </p>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               {role === 'admin' && (
-                <div className="form-field" style={{ flex: 1, minWidth: 260, margin: 0 }}>
-                  <label>Farmer User ID (UUID)</label>
+                <div className="form-field" style={{ flex: 1, minWidth: 280, margin: 0, position: 'relative' }}>
+                  <label>Farmer Name</label>
                   <input
                     type="text"
-                    placeholder="Paste farmer UUID"
-                    value={creditFarmerId}
-                    onChange={e => setCreditFarmerId(e.target.value)}
+                    placeholder="Search farmer by name…"
+                    value={creditFarmerName}
+                    onChange={e => searchFarmers(e.target.value)}
+                    autoComplete="off"
                   />
+                  {farmerSearching && (
+                    <span style={{ position: 'absolute', right: 10, top: 34, fontSize: 12, color: 'var(--col-muted)' }}>
+                      Searching…
+                    </span>
+                  )}
+                  {farmerSearchOpen && farmerSuggestions.length > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                      background: '#fff', border: '1px solid var(--col-border)',
+                      borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                      maxHeight: 200, overflowY: 'auto',
+                    }}>
+                      {farmerSuggestions.map(f => (
+                        <button
+                          key={f.id}
+                          onClick={() => selectFarmer(f.id, f.name)}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '9px 14px', background: 'none', border: 'none',
+                            cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+                            borderBottom: '1px solid var(--col-border)',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--col-surface)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          <strong>{f.name}</strong>
+                          {f.district && <span style={{ color: 'var(--col-muted)', marginLeft: 8, fontSize: 12 }}>{f.district}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {farmerSearchOpen && farmerSuggestions.length === 0 && !farmerSearching && creditFarmerName.length >= 2 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                      background: '#fff', border: '1px solid var(--col-border)',
+                      borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--col-muted)',
+                    }}>
+                      No farmers found for "{creditFarmerName}"
+                    </div>
+                  )}
+                  {creditFarmerId && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: 'var(--col-primary)', fontWeight: 500 }}>
+                      ✓ Selected: {creditFarmerName}
+                    </div>
+                  )}
                 </div>
               )}
               <Button onClick={runCreditScore} disabled={creditBusy || !creditFarmerId}>

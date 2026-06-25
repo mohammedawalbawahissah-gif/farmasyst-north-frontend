@@ -60,6 +60,15 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sync photoPreview from user object after a successful save (photoFile cleared → refreshUser ran)
+  useEffect(() => {
+    if (!photoFile && user?.profile_photo) {
+      setPhotoPreview(user.profile_photo);
+    } else if (!photoFile && !user?.profile_photo) {
+      setPhotoPreview(null);
+    }
+  }, [user?.profile_photo, photoFile]);
+
   // Load role-specific profile on mount
   useEffect(() => {
     if (!user) return;
