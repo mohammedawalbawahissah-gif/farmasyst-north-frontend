@@ -1,187 +1,299 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Send, Minimize2, MessageCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Send, ChevronDown, Minimize2 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { aiService } from '../../lib/services/ai';
-import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
-import './AIFloatingWidget.css';
+import { useLocation } from 'react-router-dom';
+import FarmAsystLogo from '../ui/FarmAsystLogo';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-const ROLE_GREETINGS: Record<string, string> = {
-  farmer:            'Hi! I\'m your FarmAsyst AI. Ask me about your flock health, credit, training, or anything farm-related.',
-  investor:          'Hello! I\'m your investment AI. Ask me about portfolio performance, farmer profiles, or impact data.',
-  admin:             'Hi! I\'m the admin AI. Ask about credit scoring, user management, or platform analytics.',
-  monitoring_officer:'Hi! I\'m your field AI. Ask about farm audits, biosecurity scoring, or report writing.',
-  vet:               'Hello! I\'m your veterinary AI. Ask about poultry diseases, treatment protocols, or bookings.',
-  consumer:          'Hi! I\'m your buyer AI. Ask about produce listings, orders, or product quality.',
-  input_dealer:      'Hello! I\'m your dealer AI. Ask about listings, farmer needs, or feed information.',
+const ROLE_HINTS: Record<string, string> = {
+  farmer:             'Ask me about your flock health, credit, training, or farm activity.',
+  investor:           'Ask me about your portfolio, farmer performance, or investment opportunities.',
+  admin:              'Ask me about platform metrics, user management, or credit workflows.',
+  monitoring_officer: 'Ask me about farm audit protocols, disease signals, or report guidance.',
+  vet:                'Ask me about poultry diseases, treatment protocols, or booking management.',
+  consumer:           'Ask me about products, orders, or subscriptions.',
+  input_dealer:       'Ask me about listing products, managing stock, or reaching farmers.',
 };
+
+const ROLE_COLORS: Record<string, string> = {
+  farmer:             '#4A7C2F',
+  investor:           '#1A4A6B',
+  admin:              '#5C2D8B',
+  monitoring_officer: '#7B5C1A',
+  vet:                '#1A5C4A',
+  consumer:           '#8B3A2F',
+  input_dealer:       '#2F4A7C',
+};
+
+const AI_PAGE_PATTERNS = ['/ai'];
+
+function getSuggestions(role: string): string[] {
+  const map: Record<string, string[]> = {
+    farmer:             ['How do I apply for credit?', 'Signs of Newcastle disease?', 'How to improve my credit score?'],
+    investor:           ['Which farmers have the best returns?', 'How is my portfolio performing?', 'What risks should I watch?'],
+    admin:              ['How many pending credit applications?', "What are today's critical alerts?", 'Summarise platform activity'],
+    monitoring_officer: ['What should I check during a farm audit?', 'How do I submit a report?', 'Signs of biosecurity failure?'],
+    vet:                ['What are common poultry diseases in Ghana?', 'How do I manage my bookings?', 'Treatment for coccidiosis?'],
+    consumer:           ['How do I track my order?', 'What products are available?', 'How do subscriptions work?'],
+    input_dealer:       ['How do I add a new listing?', 'How do farmers order from me?', 'How to manage my stock?'],
+  };
+  return map[role] ?? ['How can I help you today?'];
+}
 
 export default function AIFloatingWidget() {
   const { user } = useAuth();
+  const location = useLocation();
   const role = user?.role ?? 'farmer';
+  const accentColor = ROLE_COLORS[role] ?? '#4A7C2F';
 
-  const [open, setOpen]           = useState(false);
+  const isAIPage = AI_PAGE_PATTERNS.some(p => location.pathname.endsWith(p));
+  if (isAIPage) return null;
+
+  const [open,      setOpen]      = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [messages, setMessages]   = useState<Message[]>([]);
-  const [input, setInput]         = useState('');
-  const [busy, setBusy]           = useState(false);
+  const [messages,  setMessages]  = useState<Message[]>([]);
+  const [input,     setInput]     = useState('');
+  const [busy,      setBusy]      = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
-  const [unread, setUnread]       = useState(0);
-  const endRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  // Seed greeting on first open
-  useEffect(() => {
-    if (open && messages.length === 0) {
-      setMessages([{
-        role: 'assistant',
-        content: ROLE_GREETINGS[role] ?? ROLE_GREETINGS.farmer,
-      }]);
-    }
-  }, [open]);
+  const [unread,    setUnread]    = useState(0);
+  const chatEndRef  = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (open && !minimized) {
-      endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (open) {
       setUnread(0);
-      inputRef.current?.focus();
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
-  }, [messages, open, minimized]);
+  }, [open, messages]);
 
-  const send = useCallback(async () => {
-    const text = input.trim();
-    if (!text || busy) return;
+  useEffect(() => {
+    if (open && !minimized) textareaRef.current?.focus();
+  }, [open, minimized]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || busy) return;
+    const userText = input.trim();
     setInput('');
     setBusy(true);
-    setMessages(prev => [...prev, { role: 'user', content: text }]);
-
+    setMessages(prev => [...prev, { role: 'user', content: userText }]);
     try {
-      const res = await aiService.chat(text, sessionId);
+      const res = await aiService.chat(userText, sessionId);
       setSessionId(res.session_id);
       setMessages(prev => [...prev, { role: 'assistant', content: res.reply }]);
-      if (minimized || !open) setUnread(n => n + 1);
+      if (!open || minimized) setUnread(prev => prev + 1);
     } catch {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: '⚠️ I\'m having trouble right now. Please try again in a moment.',
-      }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ I could not respond right now. Please try again.' }]);
     } finally {
       setBusy(false);
     }
-  }, [input, busy, sessionId, minimized, open]);
-
-  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      send();
-    }
   };
 
-  const handleOpen = () => {
-    setOpen(true);
-    setMinimized(false);
-    setUnread(0);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   return (
     <>
-      {/* Floating button */}
-      {(!open || minimized) && (
+      {/* ── Floating Bubble ─────────────────────────────────── */}
+      {!open && (
         <button
-          className="ai-fab"
-          onClick={handleOpen}
-          title="Open AI Assistant"
-          aria-label="Open AI Assistant"
+          onClick={() => { setOpen(true); setMinimized(false); }}
+          style={{
+            position: 'fixed', bottom: 28, right: 28,
+            width: 56, height: 56, borderRadius: '50%',
+            background: accentColor, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 1000,
+            padding: 0, overflow: 'hidden',
+          }}
+          title="AI Assistant"
         >
-          <FarmAsystLogoMark size={36} aiMode />
-          {unread > 0 && <span className="ai-fab__badge">{unread}</span>}
+          {/* Circular logo — no bg since the button itself is the bg */}
+          <FarmAsystLogo size={56} circle />
+          {unread > 0 && (
+            <span style={{
+              position: 'absolute', top: -2, right: -2,
+              background: '#dc2626', color: '#fff', borderRadius: '50%',
+              width: 20, height: 20, fontSize: 11, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid #fff',
+            }}>
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
         </button>
       )}
 
-      {/* Chat panel */}
+      {/* ── Chat Panel ──────────────────────────────────────── */}
       {open && (
-        <div className={`ai-widget${minimized ? ' ai-widget--min' : ''}`}>
+        <div style={{
+          position: 'fixed', bottom: 28, right: 28,
+          width: 360, maxWidth: 'calc(100vw - 40px)',
+          borderRadius: 16, background: 'var(--col-surface)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.22)', zIndex: 1000,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          border: '1px solid var(--col-border)',
+          maxHeight: minimized ? 56 : '75vh',
+          transition: 'max-height 0.3s ease',
+        }}>
           {/* Header */}
-          <div className="ai-widget__header">
-            <div className="ai-widget__header-left">
-              <div className="ai-widget__avatar">
-                <FarmAsystLogoMark size={24} aiMode />
-              </div>
-              <div>
-                <div className="ai-widget__title">FarmAsyst AI</div>
-                <div className="ai-widget__status">
-                  <span className="ai-widget__dot" />
-                  {busy ? 'Thinking…' : 'Online'}
-                </div>
+          <div
+            style={{
+              background: accentColor, padding: '12px 16px',
+              display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+              cursor: minimized ? 'pointer' : 'default',
+            }}
+            onClick={() => minimized && setMinimized(false)}
+          >
+            {/* Circular logo in header */}
+            <FarmAsystLogo size={32} circle />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>FarmAsyst AI</div>
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 }}>
+                {busy ? 'Thinking…' : 'Online'}
               </div>
             </div>
-            <div className="ai-widget__header-actions">
-              <button
-                className="ai-widget__icon-btn"
-                onClick={() => setMinimized(m => !m)}
-                title={minimized ? 'Expand' : 'Minimise'}
-              >
-                {minimized ? <MessageCircle size={15} /> : <Minimize2 size={15} />}
-              </button>
-              <button
-                className="ai-widget__icon-btn"
-                onClick={() => setOpen(false)}
-                title="Close"
-              >
-                <X size={15} />
-              </button>
-            </div>
+            <button
+              onClick={e => { e.stopPropagation(); setMinimized(prev => !prev); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+              title={minimized ? 'Expand' : 'Minimise'}
+            >
+              {minimized
+                ? <ChevronDown size={18} color="rgba(255,255,255,0.85)" />
+                : <Minimize2 size={16} color="rgba(255,255,255,0.85)" />
+              }
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+              title="Close"
+            >
+              <X size={18} color="rgba(255,255,255,0.85)" />
+            </button>
           </div>
 
           {/* Messages */}
           {!minimized && (
             <>
-              <div className="ai-widget__body">
-                {messages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`ai-widget__bubble ai-widget__bubble--${m.role}`}
-                  >
-                    {m.content}
-                  </div>
-                ))}
-                {busy && (
-                  <div className="ai-widget__bubble ai-widget__bubble--assistant ai-widget__bubble--typing">
-                    <span /><span /><span />
+              <div style={{
+                flex: 1, overflowY: 'auto', padding: '14px 14px 8px',
+                display: 'flex', flexDirection: 'column', gap: 10, minHeight: 200,
+              }}>
+                {messages.length === 0 && (
+                  <div style={{ textAlign: 'center', marginTop: 24, padding: '0 8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                      <FarmAsystLogo size={48} circle />
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--col-muted)', lineHeight: 1.55, margin: 0 }}>
+                      {ROLE_HINTS[role] ?? 'How can I help you today?'}
+                    </p>
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {getSuggestions(role).map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setInput(s); textareaRef.current?.focus(); }}
+                          style={{
+                            background: accentColor + '12',
+                            border: `1px solid ${accentColor}30`,
+                            borderRadius: 8, padding: '7px 12px',
+                            fontSize: 12, color: accentColor,
+                            cursor: 'pointer', textAlign: 'left',
+                            fontFamily: 'inherit', fontWeight: 500,
+                          }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
-                <div ref={endRef} />
+
+                {messages.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{
+                      maxWidth: '82%', padding: '9px 13px',
+                      borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                      background: m.role === 'user' ? accentColor : 'var(--col-chalk, #f5f5f0)',
+                      color: m.role === 'user' ? '#fff' : 'var(--col-text)',
+                      fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    }}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+
+                {busy && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{
+                      padding: '9px 14px',
+                      borderRadius: '14px 14px 14px 4px',
+                      background: 'var(--col-chalk, #f5f5f0)',
+                      fontSize: 13, color: 'var(--col-muted)',
+                      display: 'flex', gap: 4, alignItems: 'center',
+                    }}>
+                      <span style={{ animation: 'aiDot 1.2s ease-in-out infinite' }}>●</span>
+                      <span style={{ animation: 'aiDot 1.2s ease-in-out 0.2s infinite' }}>●</span>
+                      <span style={{ animation: 'aiDot 1.2s ease-in-out 0.4s infinite' }}>●</span>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
               </div>
 
               {/* Input */}
-              <div className="ai-widget__footer">
+              <div style={{
+                borderTop: '1px solid var(--col-border)',
+                padding: '10px 12px',
+                display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0,
+                background: 'var(--col-surface)',
+              }}>
                 <textarea
-                  ref={inputRef}
-                  className="ai-widget__input"
+                  ref={textareaRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleKey}
+                  onKeyDown={handleKeyDown}
                   placeholder="Ask anything… (Enter to send)"
                   rows={1}
                   disabled={busy}
+                  style={{
+                    flex: 1, resize: 'none',
+                    border: '1px solid var(--col-border)', borderRadius: 8,
+                    padding: '8px 10px', fontSize: 13, fontFamily: 'inherit',
+                    background: 'var(--col-chalk, #f7f4ee)', maxHeight: 80,
+                    outline: 'none', lineHeight: 1.4,
+                  }}
                 />
                 <button
-                  className="ai-widget__send"
-                  onClick={send}
+                  onClick={sendMessage}
                   disabled={!input.trim() || busy}
-                  title="Send"
+                  style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: (!input.trim() || busy) ? 'var(--col-border)' : accentColor,
+                    border: 'none',
+                    cursor: (!input.trim() || busy) ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'background 0.2s',
+                  }}
                 >
-                  <Send size={14} />
+                  <Send size={15} color="#fff" />
                 </button>
               </div>
             </>
           )}
         </div>
       )}
+
+      <style>{`
+        @keyframes aiDot {
+          0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
+          30% { opacity: 1; transform: translateY(-3px); }
+        }
+      `}</style>
     </>
   );
 }
