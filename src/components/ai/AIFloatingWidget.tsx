@@ -97,7 +97,7 @@ export default function AIFloatingWidget() {
           title="Open AI Assistant"
           aria-label="Open AI Assistant"
         >
-          <FarmAsystLogoMark size={38} variant="ai" />
+          <FarmAsystLogoMark size={36} aiMode />
           {unread > 0 && <span className="ai-fab__badge">{unread}</span>}
         </button>
       )}
@@ -109,7 +109,7 @@ export default function AIFloatingWidget() {
           <div className="ai-widget__header">
             <div className="ai-widget__header-left">
               <div className="ai-widget__avatar">
-                <FarmAsystLogoMark size={28} variant="ai" />
+                <FarmAsystLogoMark size={24} aiMode />
               </div>
               <div>
                 <div className="ai-widget__title">FarmAsyst AI</div>

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, ChevronDown, Minimize2 } from 'lucide-react';
+import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
 import { useAuth } from '../../lib/auth-context';
 import { aiService } from '../../lib/services/ai';
 import { useLocation } from 'react-router-dom';
-import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -105,8 +105,8 @@ export default function AIWidget() {
             right: 28,
             width: 56,
             height: 56,
-            borderRadius: '14px',
-            background: 'transparent',
+            borderRadius: '50%',
+            background: accentColor,
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -115,7 +115,6 @@ export default function AIWidget() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
             zIndex: 1000,
             transition: 'transform 0.2s, box-shadow 0.2s',
-            padding: 0,
           }}
           title="AI Assistant"
           onMouseEnter={e => {
@@ -127,7 +126,7 @@ export default function AIWidget() {
             (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.25)';
           }}
         >
-          <FarmAsystLogoMark size={56} variant="ai" />
+          <FarmAsystLogoMark size={46} aiMode />
           {unread > 0 && (
             <span style={{
               position: 'absolute',
@@ -188,14 +187,14 @@ export default function AIWidget() {
             <div style={{
               width: 32,
               height: 32,
-              borderRadius: '8px',
-              background: 'transparent',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <FarmAsystLogoMark size={30} variant="ai" />
+              <FarmAsystLogoMark size={28} aiMode />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>FarmAsyst AI</div>
@@ -239,14 +238,14 @@ export default function AIWidget() {
                     <div style={{
                       width: 48,
                       height: 48,
-                      borderRadius: '14px',
-                      background: 'transparent',
+                      borderRadius: '50%',
+                      background: accentColor + '18',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       margin: '0 auto 12px',
                     }}>
-                      <FarmAsystLogoMark size={52} variant="ai" />
+                      <FarmAsystLogoMark size={40} aiMode />
                     </div>
                     <p style={{ fontSize: 13, color: 'var(--col-muted)', lineHeight: 1.55, margin: 0 }}>
                       {ROLE_HINTS[role] ?? 'How can I help you today?'}

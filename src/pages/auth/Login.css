@@ -24,6 +24,8 @@
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .login-page__header { text-align: center; margin-bottom: 1.5rem; }
 .login-page__logo-mark {
+  width: 56px; height: 56px; border-radius: 0;
+  background: transparent; color: transparent;
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 0.6rem;
 }

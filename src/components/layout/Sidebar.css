@@ -26,17 +26,11 @@
 .sidebar__logo-mark {
   width: 36px;
   height: 36px;
+  background: transparent;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
-  color: var(--col-earth);
   flex-shrink: 0;
 }
 
@@ -262,10 +256,10 @@
 .mobile-topbar__logo-mark {
   width: 30px;
   height: 30px;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .mobile-topbar__name {

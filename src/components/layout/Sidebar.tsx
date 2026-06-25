@@ -147,7 +147,7 @@ export default function Sidebar() {
       style={{ '--role-color': roleColor } as React.CSSProperties}
     >
       <div className="sidebar__logo">
-        <FarmAsystLogoMark size={36} variant="default" />
+        <div className="sidebar__logo-mark"><FarmAsystLogoMark size={36} /></div>
         {!collapsed && (
           <div className="sidebar__logo-text">
             <span className="sidebar__logo-name">FarmAsyst</span>
@@ -222,7 +222,7 @@ export default function Sidebar() {
           <Menu size={22} />
         </button>
         <div className="mobile-topbar__brand">
-          <FarmAsystLogoMark size={30} variant="default" />
+          <div className="mobile-topbar__logo-mark"><FarmAsystLogoMark size={30} /></div>
           <span className="mobile-topbar__name">FarmAsyst North</span>
         </div>
         <div className="mobile-topbar__avatar" style={{ background: roleColor, overflow: 'hidden', position: 'relative' }}>

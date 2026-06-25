@@ -135,7 +135,7 @@ export default function Login() {
         <div className="login-page__bg" />
         <div className="login-page__container">
           <div className="login-page__header">
-            <FarmAsystLogoMark size={52} variant="default" />
+            <div className="login-page__logo-mark"><FarmAsystLogoMark size={56} /></div>
             <h1 className="login-page__title">FarmAsyst North</h1>
           </div>
           <div className="reg-success-card">
@@ -170,7 +170,7 @@ export default function Login() {
 
       <div className="login-page__container">
         <div className="login-page__header">
-          <FarmAsystLogoMark size={52} variant="default" />
+          <div className="login-page__logo-mark"><FarmAsystLogoMark size={56} /></div>
           <h1 className="login-page__title">FarmAsyst North</h1>
           <p className="login-page__tagline">
             Agri-fintech platform connecting poultry farmers,<br />
