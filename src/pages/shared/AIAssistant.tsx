@@ -7,8 +7,8 @@ import { useAsync } from '../../lib/hooks/useAsync';
 import { toArray } from '../../lib/api';
 import type { Farm } from '../../types';
 import { Send, TrendingUp, RefreshCw } from 'lucide-react';
-import { FarmAsystLogoMark } from '../../components/ui/FarmAsystLogo';
 import DiseaseDetection from '../../components/ai/DiseaseDetection';
+import FarmAsystLogo from '../../components/ui/FarmAsystLogo';
 import '../farmer/farmer.css';
 
 type Tab = 'chat' | 'disease' | 'credit';
@@ -132,7 +132,9 @@ export default function AIAssistant() {
           }}>
             {messages.length === 0 && (
               <div style={{ textAlign: 'center', marginTop: 60, color: 'var(--col-muted)' }}>
-                <div style={{ marginBottom: 12, opacity: 0.5, display: 'inline-block' }}><FarmAsystLogoMark size={40} aiMode /></div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                  <FarmAsystLogo size={48} circle />
+                </div>
                 <p style={{ margin: 0, fontSize: 14 }}>
                   Ask me anything about your {
                     role === 'farmer'             ? 'farm, flock health, credit, or training'

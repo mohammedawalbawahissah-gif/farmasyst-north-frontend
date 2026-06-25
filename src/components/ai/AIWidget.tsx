@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, ChevronDown, Minimize2 } from 'lucide-react';
-import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
 import { useAuth } from '../../lib/auth-context';
 import { aiService } from '../../lib/services/ai';
 import { useLocation } from 'react-router-dom';
+import FarmAsystLogo from '../ui/FarmAsystLogo';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -126,7 +126,7 @@ export default function AIWidget() {
             (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.25)';
           }}
         >
-          <FarmAsystLogoMark size={46} aiMode />
+          <FarmAsystLogo size={32} circle />
           {unread > 0 && (
             <span style={{
               position: 'absolute',
@@ -188,13 +188,12 @@ export default function AIWidget() {
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: 'rgba(255,255,255,0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <FarmAsystLogoMark size={28} aiMode />
+              <FarmAsystLogo size={32} circle />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>FarmAsyst AI</div>
@@ -239,13 +238,12 @@ export default function AIWidget() {
                       width: 48,
                       height: 48,
                       borderRadius: '50%',
-                      background: accentColor + '18',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       margin: '0 auto 12px',
                     }}>
-                      <FarmAsystLogoMark size={40} aiMode />
+                      <FarmAsystLogo size={48} circle />
                     </div>
                     <p style={{ fontSize: 13, color: 'var(--col-muted)', lineHeight: 1.55, margin: 0 }}>
                       {ROLE_HINTS[role] ?? 'How can I help you today?'}

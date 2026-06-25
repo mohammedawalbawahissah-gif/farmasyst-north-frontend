@@ -5,12 +5,12 @@ import {
   Store, Package, Star, UserCheck, AlertCircle, Database,
   Banknote, LogOut, ChevronLeft, ChevronRight, ClipboardList,
   MapPin, ShieldCheck, Stethoscope, Calendar, Pill, AlertTriangle,
-  Menu, X, UserCircle, Bot, FolderKanban,
+  Menu, X, UserCircle, FolderKanban, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
+import FarmAsystLogo, { FarmAsystLogoFull } from '../ui/FarmAsystLogo';
 import type { UserRole } from '../../types';
 import { useState, useEffect } from 'react';
-import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
 import './Sidebar.css';
 
 const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; path: string }[]> = {
@@ -24,7 +24,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Marketplace',   icon: ShoppingCart,    path: '/farmer/marketplace' },
     { label: 'Vet Services',  icon: Stethoscope,     path: '/farmer/vet' },
     { label: 'Farm Inputs',   icon: Pill,            path: '/farmer/inputs' },
-    { label: 'AI Assistant',  icon: Bot,             path: '/farmer/ai' },
+    { label: 'AI Assistant',  icon: Sparkles,             path: '/farmer/ai' },
     { label: 'Notifications', icon: Bell,            path: '/farmer/notifications' },
     { label: 'My Profile',    icon: UserCircle,      path: '/farmer/profile' },
   ],
@@ -37,7 +37,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Contracts',           icon: FileCheck,       path: '/investor/contracts' },
     { label: 'Due Diligence',       icon: FileText,        path: '/investor/diligence' },
     { label: 'Impact Reports',      icon: BarChart3,       path: '/investor/impact' },
-    { label: 'AI Assistant',        icon: Bot,             path: '/investor/ai' },
+    { label: 'AI Assistant',        icon: Sparkles,             path: '/investor/ai' },
     { label: 'Notifications',       icon: Bell,            path: '/investor/notifications' },
     { label: 'My Profile',          icon: UserCircle,      path: '/investor/profile' },
   ],
@@ -57,7 +57,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Monitoring',      icon: ShieldCheck,     path: '/admin/monitoring' },
     { label: 'Vet Services',    icon: Stethoscope,     path: '/admin/vets' },
     { label: 'Input Dealers',   icon: Store,           path: '/admin/input-dealers' },
-    { label: 'AI Assistant',    icon: Bot,             path: '/admin/ai' },
+    { label: 'AI Assistant',    icon: Sparkles,             path: '/admin/ai' },
     { label: 'Settings',        icon: Settings,        path: '/admin/settings' },
     { label: 'My Profile',      icon: UserCircle,      path: '/admin/profile' },
   ],
@@ -66,7 +66,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Submit Report', icon: ClipboardList,   path: '/monitoring_officer/report' },
     { label: 'Farms',         icon: MapPin,          path: '/monitoring_officer/farms' },
     { label: 'Farmers',       icon: Users,           path: '/monitoring_officer/farmers' },
-    { label: 'AI Assistant',  icon: Bot,             path: '/monitoring_officer/ai' },
+    { label: 'AI Assistant',  icon: Sparkles,             path: '/monitoring_officer/ai' },
     { label: 'Notifications', icon: Bell,            path: '/monitoring_officer/notifications' },
     { label: 'My Profile',    icon: UserCircle,      path: '/monitoring_officer/profile' },
   ],
@@ -74,7 +74,7 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Marketplace',   icon: Store,      path: '/consumer' },
     { label: 'My Orders',     icon: Package,    path: '/consumer/orders' },
     { label: 'Subscriptions', icon: Star,       path: '/consumer/subscriptions' },
-    { label: 'AI Assistant',  icon: Bot,        path: '/consumer/ai' },
+    { label: 'AI Assistant',  icon: Sparkles,        path: '/consumer/ai' },
     { label: 'Notifications', icon: Bell,       path: '/consumer/notifications' },
     { label: 'My Profile',    icon: UserCircle, path: '/consumer/profile' },
   ],
@@ -82,14 +82,14 @@ const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; pat
     { label: 'Dashboard',     icon: LayoutDashboard, path: '/vet' },
     { label: 'Bookings',      icon: Calendar,        path: '/vet/bookings' },
     { label: 'My Services',   icon: Stethoscope,     path: '/vet/services' },
-    { label: 'AI Assistant',  icon: Bot,             path: '/vet/ai' },
+    { label: 'AI Assistant',  icon: Sparkles,             path: '/vet/ai' },
     { label: 'Notifications', icon: Bell,            path: '/vet/notifications' },
     { label: 'My Profile',    icon: UserCircle,      path: '/vet/profile' },
   ],
   input_dealer: [
     { label: 'Dashboard',     icon: LayoutDashboard, path: '/input_dealer' },
     { label: 'My Listings',   icon: Package,         path: '/input_dealer/listings' },
-    { label: 'AI Assistant',  icon: Bot,             path: '/input_dealer/ai' },
+    { label: 'AI Assistant',  icon: Sparkles,             path: '/input_dealer/ai' },
     { label: 'Notifications', icon: Bell,            path: '/input_dealer/notifications' },
     { label: 'My Profile',    icon: UserCircle,      path: '/input_dealer/profile' },
   ],
@@ -147,13 +147,10 @@ export default function Sidebar() {
       style={{ '--role-color': roleColor } as React.CSSProperties}
     >
       <div className="sidebar__logo">
-        <div className="sidebar__logo-mark"><FarmAsystLogoMark size={36} /></div>
-        {!collapsed && (
-          <div className="sidebar__logo-text">
-            <span className="sidebar__logo-name">FarmAsyst</span>
-            <span className="sidebar__logo-sub">North</span>
-          </div>
-        )}
+        {collapsed
+          ? <FarmAsystLogo size={36} />
+          : <FarmAsystLogoFull size={36} showText />
+        }
         {/* Close button — mobile only */}
         <button className="sidebar__mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
           <X size={18} />
@@ -222,7 +219,7 @@ export default function Sidebar() {
           <Menu size={22} />
         </button>
         <div className="mobile-topbar__brand">
-          <div className="mobile-topbar__logo-mark"><FarmAsystLogoMark size={30} /></div>
+          <FarmAsystLogo size={30} />
           <span className="mobile-topbar__name">FarmAsyst North</span>
         </div>
         <div className="mobile-topbar__avatar" style={{ background: roleColor, overflow: 'hidden', position: 'relative' }}>
