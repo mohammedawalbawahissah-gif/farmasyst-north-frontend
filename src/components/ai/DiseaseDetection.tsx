@@ -34,10 +34,8 @@ export default function DiseaseDetection({ farmList, role }: Props) {
   const [recording, setRecording]         = useState(false);
   const [previewSrc, setPreviewSrc]       = useState<string | null>(null);
   const [previewType, setPreviewType]     = useState<'image' | 'video'>('image');
-  const [mediaFile, setMediaFile]         = useState<File | Blob | null>(null);
   const [mediaBase64, setMediaBase64]     = useState<string | null>(null);
   const [mediaMediaType, setMediaMimeType] = useState<string>('image/jpeg');
-  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
 
   const videoRef      = useRef<HTMLVideoElement>(null);
   const streamRef     = useRef<MediaStream | null>(null);
@@ -59,7 +57,6 @@ export default function DiseaseDetection({ farmList, role }: Props) {
   const startCamera = async () => {
     setCameraError('');
     setPreviewSrc(null);
-    setMediaFile(null);
     setMediaBase64(null);
     try {
       const constraints: MediaStreamConstraints = captureType === 'photo'
@@ -95,7 +92,6 @@ export default function DiseaseDetection({ farmList, role }: Props) {
       const url = URL.createObjectURL(blob);
       setPreviewSrc(url);
       setPreviewType('image');
-      setMediaFile(blob);
       setMediaMimeType('image/jpeg');
       // base64 for API
       const reader = new FileReader();
@@ -109,7 +105,6 @@ export default function DiseaseDetection({ farmList, role }: Props) {
   const startRecording = () => {
     if (!streamRef.current) return;
     const chunks: Blob[] = [];
-    setRecordedChunks([]);
     const recorder = new MediaRecorder(streamRef.current, { mimeType: 'video/webm;codecs=vp9,opus' });
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
     recorder.onstop = () => {
@@ -117,7 +112,6 @@ export default function DiseaseDetection({ farmList, role }: Props) {
       const url = URL.createObjectURL(blob);
       setPreviewSrc(url);
       setPreviewType('video');
-      setMediaFile(blob);
       setMediaMimeType('video/webm');
       // base64 for API
       const reader = new FileReader();
@@ -143,7 +137,6 @@ export default function DiseaseDetection({ farmList, role }: Props) {
     const isVideo = file.type.startsWith('video/');
     setPreviewSrc(url);
     setPreviewType(isVideo ? 'video' : 'image');
-    setMediaFile(file);
     setMediaMimeType(file.type);
     const reader = new FileReader();
     reader.onload = ev => setMediaBase64((ev.target?.result as string)?.split(',')[1] ?? null);
@@ -152,7 +145,6 @@ export default function DiseaseDetection({ farmList, role }: Props) {
 
   const clearMedia = () => {
     setPreviewSrc(null);
-    setMediaFile(null);
     setMediaBase64(null);
     setPreviewType('image');
     stopStream();
@@ -167,16 +159,10 @@ export default function DiseaseDetection({ farmList, role }: Props) {
 
     setBusy(true); setError(''); setResult(null);
     try {
-      const payload: any = { farm_id: farmId };
-      if (mediaBase64) {
-        payload.media_data   = mediaBase64;
-        payload.media_type   = mediaMediaType;
-        payload.capture_mode = mediaMode; // 'camera' or 'upload'
-      }
       const res = await aiService.detectDisease(farmId, mediaBase64 ? {
         media_data:   mediaBase64,
         media_type:   mediaMediaType,
-        capture_mode: mediaMode,
+        capture_mode: mediaMode as 'camera' | 'upload',
       } : undefined);
       setResult(res);
     } catch (err: any) {
