@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Bot, X, Send, Minimize2, MessageCircle } from 'lucide-react';
+import { X, Send, Minimize2, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import { aiService } from '../../lib/services/ai';
+import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
 import './AIFloatingWidget.css';
 
 interface Message {
@@ -96,7 +97,7 @@ export default function AIFloatingWidget() {
           title="Open AI Assistant"
           aria-label="Open AI Assistant"
         >
-          <Bot size={22} />
+          <FarmAsystLogoMark size={38} variant="ai" />
           {unread > 0 && <span className="ai-fab__badge">{unread}</span>}
         </button>
       )}
@@ -108,7 +109,7 @@ export default function AIFloatingWidget() {
           <div className="ai-widget__header">
             <div className="ai-widget__header-left">
               <div className="ai-widget__avatar">
-                <Bot size={16} />
+                <FarmAsystLogoMark size={28} variant="ai" />
               </div>
               <div>
                 <div className="ai-widget__title">FarmAsyst AI</div>

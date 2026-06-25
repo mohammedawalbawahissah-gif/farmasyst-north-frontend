@@ -2,6 +2,7 @@ import { useState, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import { authService } from '../../lib/services/auth';
+import { FarmAsystLogoMark } from '../../components/ui/FarmAsystLogo';
 import './Login.css';
 
 type Mode = 'login' | 'register' | 'pending';
@@ -134,7 +135,7 @@ export default function Login() {
         <div className="login-page__bg" />
         <div className="login-page__container">
           <div className="login-page__header">
-            <div className="login-page__logo-mark">F</div>
+            <FarmAsystLogoMark size={52} variant="default" />
             <h1 className="login-page__title">FarmAsyst North</h1>
           </div>
           <div className="reg-success-card">
@@ -169,7 +170,7 @@ export default function Login() {
 
       <div className="login-page__container">
         <div className="login-page__header">
-          <div className="login-page__logo-mark">F</div>
+          <FarmAsystLogoMark size={52} variant="default" />
           <h1 className="login-page__title">FarmAsyst North</h1>
           <p className="login-page__tagline">
             Agri-fintech platform connecting poultry farmers,<br />

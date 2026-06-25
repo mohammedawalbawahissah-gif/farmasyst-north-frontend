@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../lib/auth-context';
 import type { UserRole } from '../../types';
 import { useState, useEffect } from 'react';
+import { FarmAsystLogoMark } from '../ui/FarmAsystLogo';
 import './Sidebar.css';
 
 const NAV_CONFIG: Record<UserRole, { label: string; icon: React.ElementType; path: string }[]> = {
@@ -146,7 +147,7 @@ export default function Sidebar() {
       style={{ '--role-color': roleColor } as React.CSSProperties}
     >
       <div className="sidebar__logo">
-        <div className="sidebar__logo-mark"><span>F</span></div>
+        <FarmAsystLogoMark size={36} variant="default" />
         {!collapsed && (
           <div className="sidebar__logo-text">
             <span className="sidebar__logo-name">FarmAsyst</span>
@@ -221,7 +222,7 @@ export default function Sidebar() {
           <Menu size={22} />
         </button>
         <div className="mobile-topbar__brand">
-          <div className="mobile-topbar__logo-mark">F</div>
+          <FarmAsystLogoMark size={30} variant="default" />
           <span className="mobile-topbar__name">FarmAsyst North</span>
         </div>
         <div className="mobile-topbar__avatar" style={{ background: roleColor, overflow: 'hidden', position: 'relative' }}>
