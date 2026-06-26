@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import AIWidget from '../ai/AIWidget';
+import NotificationToast from '../notifications/NotificationToast';
 import './AppLayout.css';
 
 export default function AppLayout() {
@@ -15,8 +16,10 @@ export default function AppLayout() {
           </ErrorBoundary>
         </div>
       </main>
-      {/* Global AI Assistant widget — visible on every portal page */}
+      {/* Global AI Assistant widget */}
       <AIWidget />
+      {/* Real-time notification toasts */}
+      <NotificationToast />
     </div>
   );
 }

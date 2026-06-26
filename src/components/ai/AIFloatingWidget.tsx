@@ -138,8 +138,8 @@ export default function AIFloatingWidget() {
           boxShadow: '0 8px 40px rgba(0,0,0,0.22)', zIndex: 1000,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           border: '1px solid var(--col-border)',
-          height: minimized ? 56 : 'min(520px, 75vh)',
-          transition: 'height 0.25s ease',
+          maxHeight: minimized ? 56 : '75vh',
+          transition: 'max-height 0.3s ease',
         }}>
           {/* Header */}
           <div
@@ -182,7 +182,7 @@ export default function AIFloatingWidget() {
             <>
               <div style={{
                 flex: 1, overflowY: 'auto', padding: '14px 14px 8px',
-                display: 'flex', flexDirection: 'column', gap: 10,
+                display: 'flex', flexDirection: 'column', gap: 10, minHeight: 200,
               }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', marginTop: 24, padding: '0 8px' }}>

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth-context';
 import FarmAsystLogo, { FarmAsystLogoFull } from '../ui/FarmAsystLogo';
+import NotificationBell from '../notifications/NotificationBell';
 import type { UserRole } from '../../types';
 import { useState, useEffect } from 'react';
 import './Sidebar.css';
@@ -198,6 +199,7 @@ export default function Sidebar() {
         <button className="sidebar__logout" onClick={logout} title="Sign out">
           <LogOut size={16} />
         </button>
+        <NotificationBell />
       </div>
 
       {/* Desktop collapse button */}
