@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth-context';
-import { NotificationProvider } from './lib/notification-context';
 import AppLayout from './components/layout/AppLayout';
 
 import Login from './pages/auth/Login';
@@ -45,6 +44,7 @@ import AdminAudit                  from './pages/admin/Audit';
 import AdminMonitoring             from './pages/admin/Monitoring';
 import AdminSettings               from './pages/admin/Settings';
 import AdminCreditAlerts           from './pages/admin/CreditAlerts';
+import AdminNotifications          from './pages/admin/Notifications';
 import AdminVetManagement          from './pages/admin/VetManagement';
 import AdminInputDealerManagement  from './pages/admin/InputDealerManagement';
 
@@ -120,6 +120,7 @@ function AppRoutes() {
         <Route path="/admin/credit"            element={<AdminCredit />} />
         <Route path="/admin/projects"          element={<AdminProjects />} />
         <Route path="/admin/credit-alerts"     element={<AdminCreditAlerts />} />
+        <Route path="/admin/notifications"     element={<AdminNotifications />} />
         <Route path="/admin/matching"          element={<AdminMatching />} />
         <Route path="/admin/training"          element={<AdminTraining />} />
         <Route path="/admin/disputes"          element={<AdminDisputes />} />
@@ -174,11 +175,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <NotificationProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </NotificationProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </AuthProvider>
   );
 }
