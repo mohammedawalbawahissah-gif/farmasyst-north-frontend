@@ -23,10 +23,17 @@ export const tokens = {
   },
 };
 
-// ── Request interceptor — attach Bearer token ──────────────────────────────────
+// ── Request interceptor — attach Bearer token + fix FormData Content-Type ─────
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const access = tokens.getAccess();
   if (access) config.headers.Authorization = `Bearer ${access}`;
+
+  // When sending FormData, delete any manually-set Content-Type so axios can
+  // auto-generate the correct "multipart/form-data; boundary=..." header.
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+
   return config;
 });
 

@@ -60,8 +60,10 @@ export const authService = {
   },
 
   async updateMe(data: FormData | Record<string, unknown>): Promise<User> {
-    const headers = data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
-    const { data: user } = await api.patch<User>('/auth/me/', data, { headers });
+    const config = data instanceof FormData
+      ? { headers: { 'Content-Type': undefined } }  // let axios set multipart + boundary automatically
+      : {};
+    const { data: user } = await api.patch<User>('/auth/me/', data, config);
     return user;
   },
 
