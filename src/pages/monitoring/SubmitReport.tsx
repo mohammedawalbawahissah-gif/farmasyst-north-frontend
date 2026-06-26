@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Farm, FarmAuditReport } from '../../types';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Button, SectionTitle, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
 import { toArray } from '../../lib/api';
+import { Camera, RefreshCw, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import '../admin/admin.css';
 import '../farmer/farmer.css';
 
@@ -45,6 +46,358 @@ function ScoreInput({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
+// ── AI Flock Vision Counter ──────────────────────────────────────────────────
+interface FlockVisionResult {
+  count:      number;
+  confidence: 'high' | 'medium' | 'low';
+  notes:      string;
+}
+
+function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) => void }) {
+  const videoRef        = useRef<HTMLVideoElement>(null);
+  const canvasRef       = useRef<HTMLCanvasElement>(null);
+  const streamRef       = useRef<MediaStream | null>(null);
+
+  const [mode,       setMode]       = useState<'idle' | 'camera' | 'upload' | 'analysing' | 'result' | 'error'>('idle');
+  const [result,     setResult]     = useState<FlockVisionResult | null>(null);
+  const [errMsg,     setErrMsg]     = useState('');
+  const [capturedImg, setCapturedImg] = useState<string | null>(null);   // base64 data URL
+
+  // ── Camera helpers ────────────────────────────────────────────────────────
+  const startCamera = async () => {
+    setErrMsg('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setMode('camera');
+    } catch {
+      setErrMsg('Camera access denied or unavailable. Please use the upload option instead.');
+      setMode('error');
+    }
+  };
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const captureFrame = () => {
+    const video  = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d')!.drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    setCapturedImg(dataUrl);
+    stopCamera();
+    analyseImage(dataUrl);
+  };
+
+  // ── Upload helper ─────────────────────────────────────────────────────────
+  const handleFileUpload = (file: File) => {
+    if (!file.type.startsWith('image/')) { setErrMsg('Please select an image file.'); setMode('error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target?.result as string;
+      setCapturedImg(dataUrl);
+      analyseImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ── AI Vision call ────────────────────────────────────────────────────────
+  const analyseImage = async (dataUrl: string) => {
+    setMode('analysing');
+    setResult(null);
+
+    // Strip the "data:image/jpeg;base64," prefix — API needs raw base64
+    const base64Data  = dataUrl.split(',')[1];
+    const mediaType   = (dataUrl.match(/^data:(image\/\w+);base64,/) ?? [])[1] ?? 'image/jpeg';
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model:      'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type:   'image',
+                  source: { type: 'base64', media_type: mediaType, data: base64Data },
+                },
+                {
+                  type: 'text',
+                  text: `You are an expert poultry farm monitoring AI. Count the number of birds (chickens, broilers, layers, or any poultry) visible in this image.
+
+Respond ONLY with a JSON object (no markdown, no preamble) in exactly this shape:
+{
+  "count": <integer — best estimate of visible bird count>,
+  "confidence": "<high|medium|low>",
+  "notes": "<brief 1-sentence observation about visibility, crowding, or any counting caveats>"
+}
+
+Rules:
+- If the image does not show poultry at all, set count to 0 and explain in notes.
+- If birds are partially obscured or very densely packed, estimate carefully and lower confidence accordingly.
+- Do not include any text outside the JSON object.`,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      const raw  = data.content?.map((b: { type: string; text?: string }) => b.type === 'text' ? b.text ?? '' : '').join('') ?? '';
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const parsed: FlockVisionResult = JSON.parse(clean);
+
+      setResult(parsed);
+      setMode('result');
+    } catch {
+      setErrMsg('AI analysis failed. Please retake the photo or try again.');
+      setMode('error');
+    }
+  };
+
+  // ── Cleanup on unmount ────────────────────────────────────────────────────
+  useEffect(() => () => stopCamera(), [stopCamera]);
+
+  const reset = () => {
+    stopCamera();
+    setCapturedImg(null);
+    setResult(null);
+    setErrMsg('');
+    setMode('idle');
+  };
+
+  const confidenceColor = (c: FlockVisionResult['confidence']) =>
+    c === 'high' ? '#4A7C2F' : c === 'medium' ? '#E8A020' : '#C0392B';
+
+  const confidenceIcon = (c: FlockVisionResult['confidence']) =>
+    c === 'high' ? <CheckCircle size={14} /> : <AlertTriangle size={14} />;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div style={{
+      border: '1.5px dashed #7B5C1A55',
+      borderRadius: 10,
+      padding: 'var(--sp-md)',
+      background: '#fdf9f2',
+      marginBottom: 'var(--sp-md)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-sm)' }}>
+        <Camera size={16} color="#7B5C1A" />
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#7B5C1A' }}>AI Live Flock Count</span>
+        <span style={{
+          fontSize: 10, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase',
+          background: '#7B5C1A22', color: '#7B5C1A', borderRadius: 4, padding: '2px 6px',
+        }}>Beta</span>
+        {mode !== 'idle' && (
+          <button onClick={reset} title="Reset" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--col-muted)' }}>
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      <p style={{ fontSize: 12, color: 'var(--col-muted)', margin: '0 0 var(--sp-sm)', lineHeight: 1.5 }}>
+        Point your camera at the flock or upload a photo — the AI will estimate the bird count automatically.
+      </p>
+
+      {/* ── Idle: action buttons ── */}
+      {mode === 'idle' && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={startCamera}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: '#7B5C1A', color: '#fff', border: 'none',
+              borderRadius: 7, padding: '7px 14px', fontSize: 12,
+              fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <Camera size={13} /> Open Camera
+          </button>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: '#7B5C1A22', color: '#7B5C1A',
+            border: '1px solid #7B5C1A44',
+            borderRadius: 7, padding: '7px 14px', fontSize: 12,
+            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            📁 Upload Photo
+            <input
+              type="file" accept="image/*" hidden
+              onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+            />
+          </label>
+        </div>
+      )}
+
+      {/* ── Camera live feed ── */}
+      {mode === 'camera' && (
+        <div>
+          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: '#000', marginBottom: 10 }}>
+            <video
+              ref={videoRef}
+              autoPlay playsInline muted
+              style={{ width: '100%', display: 'block', maxHeight: 260, objectFit: 'cover' }}
+            />
+            {/* Targeting overlay */}
+            <div style={{
+              position: 'absolute', inset: 0, border: '2px solid rgba(255,255,255,0.25)',
+              pointerEvents: 'none',
+            }}>
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%,-50%)',
+                width: 120, height: 120,
+                border: '2px solid rgba(255,200,50,0.8)',
+                borderRadius: 4,
+              }} />
+            </div>
+          </div>
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={captureFrame}
+              style={{
+                flex: 1, background: '#7B5C1A', color: '#fff',
+                border: 'none', borderRadius: 7, padding: '9px 0',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              📸 Capture &amp; Count
+            </button>
+            <button
+              onClick={reset}
+              style={{
+                background: 'var(--col-chalk)', color: 'var(--col-muted)',
+                border: '1px solid var(--col-border)',
+                borderRadius: 7, padding: '9px 14px',
+                fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Analysing spinner ── */}
+      {mode === 'analysing' && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 'var(--sp-lg) 0' }}>
+          {capturedImg && (
+            <img
+              src={capturedImg} alt="Captured frame"
+              style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 8, opacity: 0.6 }}
+            />
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#7B5C1A', fontSize: 13, fontWeight: 600 }}>
+            <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
+            Analysing flock image…
+          </div>
+        </div>
+      )}
+
+      {/* ── Result ── */}
+      {mode === 'result' && result && (
+        <div>
+          {capturedImg && (
+            <img
+              src={capturedImg} alt="Analysed frame"
+              style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
+            />
+          )}
+          <div style={{
+            background: '#fff', border: '1px solid #7B5C1A33',
+            borderRadius: 8, padding: 'var(--sp-sm) var(--sp-md)',
+            display: 'flex', flexDirection: 'column', gap: 6,
+            marginBottom: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <span style={{ fontSize: 28, fontWeight: 800, color: '#7B5C1A', lineHeight: 1 }}>
+                {result.count.toLocaleString()}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--col-muted)' }}>birds counted</span>
+              <span style={{
+                marginLeft: 'auto',
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
+                color: confidenceColor(result.confidence),
+              }}>
+                {confidenceIcon(result.confidence)} {result.confidence} confidence
+              </span>
+            </div>
+            {result.notes && (
+              <p style={{ fontSize: 12, color: 'var(--col-muted)', margin: 0, lineHeight: 1.5 }}>
+                {result.notes}
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => onCountAccepted(result.count)}
+              style={{
+                flex: 1, background: '#7B5C1A', color: '#fff',
+                border: 'none', borderRadius: 7, padding: '8px 0',
+                fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              ✓ Use this count
+            </button>
+            <button
+              onClick={reset}
+              style={{
+                background: 'var(--col-chalk)', color: 'var(--col-muted)',
+                border: '1px solid var(--col-border)',
+                borderRadius: 7, padding: '8px 12px',
+                fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Retake
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {mode === 'error' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ fontSize: 12, color: '#C0392B', margin: 0 }}>⚠️ {errMsg}</p>
+          <button
+            onClick={reset}
+            style={{
+              background: 'var(--col-chalk)', color: 'var(--col-muted)',
+              border: '1px solid var(--col-border)',
+              borderRadius: 7, padding: '7px 14px', fontSize: 12,
+              cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start',
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function SubmitReport() {
   const [searchParams] = useSearchParams();
   const navigate       = useNavigate();
@@ -156,9 +509,14 @@ export default function SubmitReport() {
               </div>
             </div>
 
+            {/* ── Flock count field with AI camera helper ── */}
             <div className="form-field">
               <label>Flock count verified on site <span className="required">*</span></label>
-              <input type="number" min="0" placeholder="e.g. 1200" value={form.flock_verified} onChange={e => set('flock_verified', e.target.value)} />
+              <input
+                type="number" min="0" placeholder="e.g. 1200"
+                value={form.flock_verified}
+                onChange={e => set('flock_verified', e.target.value)}
+              />
               {selectedFarm && form.flock_verified && (
                 <span style={{ fontSize: 12, color: Math.abs(parseInt(form.flock_verified) - selectedFarm.flock_size) > selectedFarm.flock_size * 0.1 ? '#C0392B' : '#4A7C2F' }}>
                   {Math.abs(parseInt(form.flock_verified) - selectedFarm.flock_size) > selectedFarm.flock_size * 0.1
@@ -167,6 +525,11 @@ export default function SubmitReport() {
                 </span>
               )}
             </div>
+
+            {/* ── AI Flock Vision Counter ── */}
+            <AIFlockCounter
+              onCountAccepted={count => set('flock_verified', String(count))}
+            />
 
             {/* Score inputs */}
             <div style={{ background: '#f8f7f4', borderRadius: 8, padding: 'var(--sp-md)', marginBottom: 'var(--sp-md)' }}>

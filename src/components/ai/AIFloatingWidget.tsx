@@ -10,6 +10,17 @@ interface Message {
   content: string;
 }
 
+// ── Role-based display titles ────────────────────────────────────────────────
+const ROLE_TITLES: Record<string, string> = {
+  farmer:             'Farmer Assistant',
+  investor:           'Investor Assistant',
+  admin:              'Admin Assistant',
+  monitoring_officer: 'Monitoring Assistant',
+  vet:                'Vet Assistant',
+  consumer:           'Consumer Assistant',
+  input_dealer:       'Dealer Assistant',
+};
+
 const ROLE_HINTS: Record<string, string> = {
   farmer:             'Ask me about your flock health, credit, training, or farm activity.',
   investor:           'Ask me about your portfolio, farmer performance, or investment opportunities.',
@@ -50,6 +61,10 @@ export default function AIFloatingWidget() {
   const location = useLocation();
   const role = user?.role ?? 'farmer';
   const accentColor = ROLE_COLORS[role] ?? '#4A7C2F';
+
+  // Derive a friendly first name (fall back to "there" if not available)
+  const firstName = user?.first_name?.trim() || user?.full_name?.split(' ')[0] || 'there';
+  const widgetTitle = ROLE_TITLES[role] ?? 'FarmAsyst AI';
 
   const isAIPage = AI_PAGE_PATTERNS.some(p => location.pathname.endsWith(p));
   if (isAIPage) return null;
@@ -111,9 +126,8 @@ export default function AIFloatingWidget() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 1000,
             padding: 0, overflow: 'hidden',
           }}
-          title="AI Assistant"
+          title={widgetTitle}
         >
-          {/* Circular logo — no bg since the button itself is the bg */}
           <FarmAsystLogo size={56} circle />
           {unread > 0 && (
             <span style={{
@@ -150,10 +164,13 @@ export default function AIFloatingWidget() {
             }}
             onClick={() => minimized && setMinimized(false)}
           >
-            {/* Circular logo in header */}
+            {/* Circular logo in header only */}
             <FarmAsystLogo size={32} circle />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>FarmAsyst AI</div>
+              {/* Role-based title */}
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>
+                {widgetTitle}
+              </div>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 }}>
                 {busy ? 'Thinking…' : 'Online'}
               </div>
@@ -186,13 +203,25 @@ export default function AIFloatingWidget() {
               }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', marginTop: 24, padding: '0 8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-                      <FarmAsystLogo size={48} circle />
-                    </div>
-                    <p style={{ fontSize: 13, color: 'var(--col-muted)', lineHeight: 1.55, margin: 0 }}>
-                      {ROLE_HINTS[role] ?? 'How can I help you today?'}
+                    {/* ── Personalised greeting — no logo here ── */}
+                    <p style={{
+                      fontSize: 15, fontWeight: 600,
+                      color: accentColor,
+                      margin: '0 0 4px',
+                      lineHeight: 1.35,
+                    }}>
+                      Hello {firstName} 👋
                     </p>
-                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <p style={{
+                      fontSize: 13, color: 'var(--col-muted)',
+                      lineHeight: 1.55, margin: '0 0 16px',
+                    }}>
+                      How can I help you today?
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--col-muted)', lineHeight: 1.5, margin: '0 0 12px' }}>
+                      {ROLE_HINTS[role] ?? 'Ask me anything.'}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {getSuggestions(role).map((s, i) => (
                         <button
                           key={i}
