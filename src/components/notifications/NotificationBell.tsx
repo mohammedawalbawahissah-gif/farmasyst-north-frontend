@@ -5,6 +5,7 @@ import { notificationsService } from '../../lib/services/notifications';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth-context';
 import type { Notification } from '../../types';
+import NotificationDetail from './NotificationDetail';
 
 const PRIORITY_DOT: Record<string, string> = {
   urgent: '#dc2626',
@@ -18,9 +19,10 @@ export default function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [open,    setOpen]    = useState(false);
-  const [notifs,  setNotifs]  = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [open,     setOpen]     = useState(false);
+  const [notifs,   setNotifs]   = useState<Notification[]>([]);
+  const [loading,  setLoading]  = useState(false);
+  const [selected, setSelected] = useState<Notification | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const btnRef   = useRef<HTMLButtonElement>(null);
 
@@ -60,17 +62,28 @@ export default function NotificationBell() {
   };
 
   const handleNotifClick = async (n: Notification) => {
+    // Mark as read if not already
     if (!n.is_read) {
       await notificationsService.markRead(n.id);
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
       refreshUnread();
     }
+    // Open detail modal — close the dropdown panel first so they don't overlap
+    setOpen(false);
+    setSelected({ ...n, is_read: true });
   };
 
   const recent = notifs.slice(0, 8);
 
   return (
     <div style={{ position: 'relative' }}>
+      {/* Detail modal (rendered outside the panel so z-index stacks correctly) */}
+      {selected && (
+        <NotificationDetail
+          notification={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
       {/* Bell button */}
       <button
         ref={btnRef}
