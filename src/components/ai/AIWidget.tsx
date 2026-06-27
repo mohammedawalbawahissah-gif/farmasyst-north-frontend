@@ -10,6 +10,16 @@ interface Message {
   content: string;
 }
 
+const ROLE_TITLES: Record<string, string> = {
+  farmer:             'Farmer Assistant',
+  investor:           'Investor Assistant',
+  admin:              'Admin Assistant',
+  monitoring_officer: 'Monitoring Assistant',
+  vet:                'Vet Assistant',
+  consumer:           'Consumer Assistant',
+  input_dealer:       'Dealer Assistant',
+};
+
 const ROLE_HINTS: Record<string, string> = {
   farmer:             'Ask me about your flock health, credit, training, or farm activity.',
   investor:           'Ask me about your portfolio, farmer performance, or investment opportunities.',
@@ -30,27 +40,32 @@ const ROLE_COLORS: Record<string, string> = {
   input_dealer:       '#2F4A7C',
 };
 
-// Pages where the widget is hidden (the dedicated full-page AI Assistant)
-const AI_PAGE_PATTERNS = ['/ai'];
+function getSuggestions(role: string): string[] {
+  const map: Record<string, string[]> = {
+    farmer:             ['How do I apply for credit?', 'Signs of Newcastle disease?', 'How to improve my credit score?'],
+    investor:           ['Which farmers have the best returns?', 'How is my portfolio performing?', 'What risks should I watch?'],
+    admin:              ['How many pending credit applications?', "What are today's critical alerts?", 'Summarise platform activity'],
+    monitoring_officer: ['What should I check during a farm audit?', 'How do I submit a report?', 'Signs of biosecurity failure?'],
+    vet:                ['What are common poultry diseases in Ghana?', 'How do I manage my bookings?', 'Treatment for coccidiosis?'],
+    consumer:           ['How do I track my order?', 'What products are available?', 'How do subscriptions work?'],
+    input_dealer:       ['How do I add a new listing?', 'How do farmers order from me?', 'How to manage my stock?'],
+  };
+  return map[role] ?? ['How can I help you today?'];
+}
 
 export default function AIWidget() {
   const { user } = useAuth();
   const location = useLocation();
-  const role = user?.role ?? 'farmer';
-  const accentColor = ROLE_COLORS[role] ?? '#4A7C2F';
 
-  // Hide on dedicated AI Assistant page
-  const isAIPage = AI_PAGE_PATTERNS.some(p => location.pathname.endsWith(p));
-  if (isAIPage) return null;
-
-  const [open, setOpen] = useState(false);
+  // ── All hooks FIRST — before any conditional returns ──────────────────────
+  const [open,      setOpen]      = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [messages,  setMessages]  = useState<Message[]>([]);
+  const [input,     setInput]     = useState('');
+  const [busy,      setBusy]      = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
-  const [unread, setUnread] = useState(0);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [unread,    setUnread]    = useState(0);
+  const chatEndRef  = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -61,19 +76,26 @@ export default function AIWidget() {
   }, [open, messages]);
 
   useEffect(() => {
-    if (open && !minimized) {
-      textareaRef.current?.focus();
-    }
+    if (open && !minimized) textareaRef.current?.focus();
   }, [open, minimized]);
 
+  // ── Derived values ────────────────────────────────────────────────────────
+  const role        = user?.role ?? 'farmer';
+  const accentColor = ROLE_COLORS[role] ?? '#4A7C2F';
+  const widgetTitle = ROLE_TITLES[role] ?? 'FarmAsyst AI';
+  const firstName   = user?.first_name?.trim() || user?.full_name?.split(' ')[0] || 'there';
+
+  // Hide on the dedicated AI Assistant page (routes end with /ai)
+  const isAIPage = location.pathname.endsWith('/ai');
+  if (isAIPage) return null;
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const sendMessage = async () => {
     if (!input.trim() || busy) return;
     const userText = input.trim();
     setInput('');
     setBusy(true);
-    const newMessages: Message[] = [...messages, { role: 'user', content: userText }];
-    setMessages(newMessages);
-
+    setMessages(prev => [...prev, { role: 'user', content: userText }]);
     try {
       const res = await aiService.chat(userText, sessionId);
       setSessionId(res.session_id);
@@ -87,61 +109,32 @@ export default function AIWidget() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   return (
     <>
-      {/* ── Floating Bubble ───────────────────────────────────── */}
+      {/* ── Floating Bubble ─────────────────────────────────── */}
       {!open && (
         <button
           onClick={() => { setOpen(true); setMinimized(false); }}
           style={{
-            position: 'fixed',
-            bottom: 28,
-            right: 28,
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            background: accentColor,
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-            zIndex: 1000,
-            transition: 'transform 0.2s, box-shadow 0.2s',
+            position: 'fixed', bottom: 28, right: 28,
+            width: 56, height: 56, borderRadius: '50%',
+            background: accentColor, border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 1000,
+            padding: 0, overflow: 'hidden',
           }}
           title="AI Assistant"
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.08)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 28px rgba(0,0,0,0.32)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(0,0,0,0.25)';
-          }}
         >
-          <FarmAsystLogo size={32} circle />
+          <FarmAsystLogo size={56} circle />
           {unread > 0 && (
             <span style={{
-              position: 'absolute',
-              top: -2,
-              right: -2,
-              background: '#dc2626',
-              color: '#fff',
-              borderRadius: '50%',
-              width: 20,
-              height: 20,
-              fontSize: 11,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              position: 'absolute', top: -2, right: -2,
+              background: '#dc2626', color: '#fff', borderRadius: '50%',
+              width: 20, height: 20, fontSize: 11, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid #fff',
             }}>
               {unread > 9 ? '9+' : unread}
@@ -150,53 +143,30 @@ export default function AIWidget() {
         </button>
       )}
 
-      {/* ── Chat Panel ───────────────────────────────────────── */}
+      {/* ── Chat Panel ──────────────────────────────────────── */}
       {open && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 28,
-            right: 28,
-            width: 360,
-            maxWidth: 'calc(100vw - 40px)',
-            borderRadius: 16,
-            background: 'var(--col-surface)',
-            boxShadow: '0 8px 40px rgba(0,0,0,0.22)',
-            zIndex: 1000,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            border: '1px solid var(--col-border)',
-            maxHeight: minimized ? 56 : '75vh',
-            transition: 'max-height 0.3s ease',
-          }}
-        >
+        <div style={{
+          position: 'fixed', bottom: 28, right: 28,
+          width: 360, maxWidth: 'calc(100vw - 40px)',
+          borderRadius: 16, background: 'var(--col-surface)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.22)', zIndex: 1000,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          border: '1px solid var(--col-border)',
+          maxHeight: minimized ? 56 : '75vh',
+          transition: 'max-height 0.3s ease',
+        }}>
           {/* Header */}
           <div
             style={{
-              background: accentColor,
-              padding: '12px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flexShrink: 0,
+              background: accentColor, padding: '12px 16px',
+              display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
               cursor: minimized ? 'pointer' : 'default',
             }}
             onClick={() => minimized && setMinimized(false)}
           >
-            <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <FarmAsystLogo size={32} circle />
-            </div>
+            <FarmAsystLogo size={32} circle />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>FarmAsyst AI</div>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>{widgetTitle}</div>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 }}>
                 {busy ? 'Thinking…' : 'Online'}
               </div>
@@ -224,31 +194,27 @@ export default function AIWidget() {
           {!minimized && (
             <>
               <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '14px 14px 8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-                minHeight: 200,
+                flex: 1, overflowY: 'auto', padding: '14px 14px 8px',
+                display: 'flex', flexDirection: 'column', gap: 10, minHeight: 200,
               }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', marginTop: 24, padding: '0 8px' }}>
-                    <div style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 12px',
+                    <p style={{
+                      fontSize: 15, fontWeight: 600,
+                      color: accentColor, margin: '0 0 4px', lineHeight: 1.35,
                     }}>
-                      <FarmAsystLogo size={48} circle />
-                    </div>
-                    <p style={{ fontSize: 13, color: 'var(--col-muted)', lineHeight: 1.55, margin: 0 }}>
-                      {ROLE_HINTS[role] ?? 'How can I help you today?'}
+                      Hello {firstName} 👋
                     </p>
-                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <p style={{
+                      fontSize: 13, color: 'var(--col-muted)',
+                      lineHeight: 1.55, margin: '0 0 12px',
+                    }}>
+                      How can I help you today?
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--col-muted)', lineHeight: 1.5, margin: '0 0 12px' }}>
+                      {ROLE_HINTS[role] ?? 'Ask me anything.'}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {getSuggestions(role).map((s, i) => (
                         <button
                           key={i}
@@ -256,14 +222,10 @@ export default function AIWidget() {
                           style={{
                             background: accentColor + '12',
                             border: `1px solid ${accentColor}30`,
-                            borderRadius: 8,
-                            padding: '7px 12px',
-                            fontSize: 12,
-                            color: accentColor,
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            fontFamily: 'inherit',
-                            fontWeight: 500,
+                            borderRadius: 8, padding: '7px 12px',
+                            fontSize: 12, color: accentColor,
+                            cursor: 'pointer', textAlign: 'left',
+                            fontFamily: 'inherit', fontWeight: 500,
                           }}
                         >
                           {s}
@@ -276,15 +238,11 @@ export default function AIWidget() {
                 {messages.map((m, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                     <div style={{
-                      maxWidth: '82%',
-                      padding: '9px 13px',
+                      maxWidth: '82%', padding: '9px 13px',
                       borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                       background: m.role === 'user' ? accentColor : 'var(--col-chalk, #f5f5f0)',
                       color: m.role === 'user' ? '#fff' : 'var(--col-text)',
-                      fontSize: 13,
-                      lineHeight: 1.55,
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
+                      fontSize: 13, lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     }}>
                       {m.content}
                     </div>
@@ -297,11 +255,8 @@ export default function AIWidget() {
                       padding: '9px 14px',
                       borderRadius: '14px 14px 14px 4px',
                       background: 'var(--col-chalk, #f5f5f0)',
-                      fontSize: 13,
-                      color: 'var(--col-muted)',
-                      display: 'flex',
-                      gap: 4,
-                      alignItems: 'center',
+                      fontSize: 13, color: 'var(--col-muted)',
+                      display: 'flex', gap: 4, alignItems: 'center',
                     }}>
                       <span style={{ animation: 'aiDot 1.2s ease-in-out infinite' }}>●</span>
                       <span style={{ animation: 'aiDot 1.2s ease-in-out 0.2s infinite' }}>●</span>
@@ -316,10 +271,7 @@ export default function AIWidget() {
               <div style={{
                 borderTop: '1px solid var(--col-border)',
                 padding: '10px 12px',
-                display: 'flex',
-                gap: 8,
-                alignItems: 'flex-end',
-                flexShrink: 0,
+                display: 'flex', gap: 8, alignItems: 'flex-end', flexShrink: 0,
                 background: 'var(--col-surface)',
               }}>
                 <textarea
@@ -331,34 +283,23 @@ export default function AIWidget() {
                   rows={1}
                   disabled={busy}
                   style={{
-                    flex: 1,
-                    resize: 'none',
-                    border: '1px solid var(--col-border)',
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    fontSize: 13,
-                    fontFamily: 'inherit',
-                    background: 'var(--col-chalk, #f7f4ee)',
-                    maxHeight: 80,
-                    outline: 'none',
-                    lineHeight: 1.4,
+                    flex: 1, resize: 'none',
+                    border: '1px solid var(--col-border)', borderRadius: 8,
+                    padding: '8px 10px', fontSize: 13, fontFamily: 'inherit',
+                    background: 'var(--col-chalk, #f7f4ee)', maxHeight: 80,
+                    outline: 'none', lineHeight: 1.4,
                   }}
                 />
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim() || busy}
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
+                    width: 36, height: 36, borderRadius: 8,
                     background: (!input.trim() || busy) ? 'var(--col-border)' : accentColor,
                     border: 'none',
                     cursor: (!input.trim() || busy) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    transition: 'background 0.2s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, transition: 'background 0.2s',
                   }}
                 >
                   <Send size={15} color="#fff" />
@@ -369,7 +310,6 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* Typing dot animation */}
       <style>{`
         @keyframes aiDot {
           0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
@@ -378,17 +318,4 @@ export default function AIWidget() {
       `}</style>
     </>
   );
-}
-
-function getSuggestions(role: string): string[] {
-  const map: Record<string, string[]> = {
-    farmer:             ['How do I apply for credit?', 'Signs of Newcastle disease?', 'How to improve my credit score?'],
-    investor:           ['Which farmers have the best returns?', 'How is my portfolio performing?', 'What risks should I watch?'],
-    admin:              ['How many pending credit applications?', 'What are today\'s critical alerts?', 'Summarise platform activity'],
-    monitoring_officer: ['What should I check during a farm audit?', 'How do I submit a report?', 'Signs of biosecurity failure?'],
-    vet:                ['What are common poultry diseases in Ghana?', 'How do I manage my bookings?', 'Treatment for coccidiosis?'],
-    consumer:           ['How do I track my order?', 'What products are available?', 'How do subscriptions work?'],
-    input_dealer:       ['How do I add a new listing?', 'How do farmers order from me?', 'How to manage my stock?'],
-  };
-  return map[role] ?? ['How can I help you today?'];
 }
