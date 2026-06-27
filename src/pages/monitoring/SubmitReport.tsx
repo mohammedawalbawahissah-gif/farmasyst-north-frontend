@@ -63,6 +63,24 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
   const [result,     setResult]     = useState<FlockVisionResult | null>(null);
   const [errMsg,     setErrMsg]     = useState('');
   const [capturedImg, setCapturedImg] = useState<string | null>(null);   // base64 data URL
+  const [videoReady,  setVideoReady] = useState(false);
+
+  // ── Attach stream to video element after it mounts ───────────────────────
+  // setMode('camera') triggers a re-render that mounts <video>. We use an
+  // effect so srcObject is assigned after the DOM element exists.
+  useEffect(() => {
+    if (mode === 'camera' && videoRef.current && streamRef.current) {
+      const video = videoRef.current;
+      video.srcObject = streamRef.current;
+      setVideoReady(false);
+      const onCanPlay = () => {
+        video.play().catch(() => {});
+        setVideoReady(true);
+      };
+      video.addEventListener('canplay', onCanPlay);
+      return () => video.removeEventListener('canplay', onCanPlay);
+    }
+  }, [mode]);
 
   // ── Camera helpers ────────────────────────────────────────────────────────
   const startCamera = async () => {
@@ -72,12 +90,7 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
         video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // play() is called by onLoadedMetadata on the video element to avoid
-        // the race condition that causes a black/dark camera preview
-      }
-      setMode('camera');
+      setMode('camera'); // triggers re-render → <video> mounts → useEffect assigns srcObject
     } catch {
       setErrMsg('Camera access denied or unavailable. Please use the upload option instead.');
       setMode('error');
@@ -92,9 +105,9 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
   const captureFrame = () => {
     const video  = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
+    if (!video || !canvas || !videoReady) return;
+    canvas.width  = video.videoWidth  || 1280;
+    canvas.height = video.videoHeight || 720;
     canvas.getContext('2d')!.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     setCapturedImg(dataUrl);
@@ -144,6 +157,7 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
     setCapturedImg(null);
     setResult(null);
     setErrMsg('');
+    setVideoReady(false);
     setMode('idle');
   };
 
@@ -217,9 +231,19 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
             <video
               ref={videoRef}
               autoPlay playsInline muted
-              onLoadedMetadata={() => { videoRef.current?.play(); }}
               style={{ width: '100%', display: 'block', maxHeight: 260, objectFit: 'cover' }}
             />
+            {!videoReady && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(0,0,0,0.6)',
+                color: '#fff', fontSize: 13, gap: 8,
+              }}>
+                <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                Starting camera…
+              </div>
+            )}
             {/* Targeting overlay */}
             <div style={{
               position: 'absolute', inset: 0, border: '2px solid rgba(255,255,255,0.25)',
@@ -238,10 +262,13 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={captureFrame}
+              disabled={!videoReady}
               style={{
-                flex: 1, background: '#7B5C1A', color: '#fff',
+                flex: 1, background: videoReady ? '#7B5C1A' : '#bba97a', color: '#fff',
                 border: 'none', borderRadius: 7, padding: '9px 0',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13, fontWeight: 700,
+                cursor: videoReady ? 'pointer' : 'not-allowed',
+                fontFamily: 'inherit',
               }}
             >
               📸 Capture &amp; Count
