@@ -3,7 +3,7 @@ import { PageHeader, Card, Button, Badge, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { projectService, type ProjectApplication, type ProjectFarmerEntry } from '../../lib/services/projects';
 import { toArray } from '../../lib/api';
-import { ChevronDown, ChevronUp, Plus, Trash2, UserPlus, Send, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2, UserPlus, Send, X, Pencil } from 'lucide-react';
 import '../farmer/farmer.css';
 import './admin.css';
 
@@ -46,6 +46,9 @@ const blankProject = () => ({
 type View = 'list' | 'create';
 type FarmerDraft = ReturnType<typeof blankFarmer>;
 
+// Existing farmer entries (from saved draft) — carry their id so we can delete them
+type ExistingEntry = ProjectFarmerEntry & { _toDelete?: boolean };
+
 export default function AdminProjects() {
   const projects = useAsync(() => projectService.list(), []);
   const list = toArray<ProjectApplication>(projects.data);
@@ -62,9 +65,14 @@ export default function AdminProjects() {
   const [msg,        setMsg]        = useState('');
   const [msgType,    setMsgType]    = useState<'success' | 'error'>('success');
 
-  // ── Create state ────────────────────────────────────────────────────────
+  // ── Create / Edit state ─────────────────────────────────────────────────
+  // editingId: null = new project, string = editing existing draft
+  const [editingId,     setEditingId]     = useState<string | null>(null);
   const [projectDraft,  setProjectDraft]  = useState(blankProject());
+  // New farmer rows to be POST-ed
   const [farmerDrafts,  setFarmerDrafts]  = useState<FarmerDraft[]>([blankFarmer()]);
+  // Existing farmer entries already saved on the backend (only present when editing)
+  const [existingEntries, setExistingEntries] = useState<ExistingEntry[]>([]);
   const [createBusy,    setCreateBusy]    = useState(false);
   const [createError,   setCreateError]   = useState('');
   const [createStep,    setCreateStep]    = useState<'details' | 'farmers'>('details');
@@ -102,68 +110,152 @@ export default function AdminProjects() {
     }
   };
 
-  // ── Create handlers ─────────────────────────────────────────────────────
+  // ── Quick submit from list (draft → submitted) ───────────────────────────
+  const handleQuickSubmit = async (proj: ProjectApplication) => {
+    if (proj.farmer_count === 0) {
+      showMsg('Add at least one farmer before submitting.', 'error'); return;
+    }
+    setBusy(proj.id);
+    try {
+      await projectService.submit(proj.id);
+      showMsg(`"${proj.project_name}" submitted for review.`);
+      projects.refetch();
+    } catch (err: any) {
+      showMsg(err?.response?.data?.detail ?? 'Submit failed.', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // ── Open edit form for an existing draft ────────────────────────────────
+  const openEdit = (proj: ProjectApplication) => {
+    setEditingId(proj.id);
+    setProjectDraft({
+      project_name:            proj.project_name,
+      organisation:            proj.organisation,
+      credit_type:             proj.credit_type,
+      total_amount_requested:  proj.total_amount_requested ?? '',
+      repayment_period_months: proj.repayment_period_months != null ? String(proj.repayment_period_months) : '',
+      purpose:                 proj.purpose,
+    });
+    // Load existing farmer entries (they're already on the backend)
+    setExistingEntries(proj.farmer_entries.map(fe => ({ ...fe })));
+    // Start with one blank new row so admin can add more immediately
+    setFarmerDrafts([blankFarmer()]);
+    setCreateError('');
+    setCreateStep('details');
+    setView('create');
+  };
+
+  // ── Reset to new-project mode ────────────────────────────────────────────
+  const openNew = () => {
+    setEditingId(null);
+    setProjectDraft(blankProject());
+    setFarmerDrafts([blankFarmer()]);
+    setExistingEntries([]);
+    setCreateError('');
+    setCreateStep('details');
+    setView('create');
+  };
+
+  // ── Farmer row helpers ───────────────────────────────────────────────────
   const updateFarmer = (idx: number, field: keyof FarmerDraft, value: string | number | null) => {
     setFarmerDrafts(prev => prev.map((f, i) => i === idx ? { ...f, [field]: value } : f));
   };
 
   const addFarmerRow = () => setFarmerDrafts(prev => [...prev, blankFarmer()]);
   const removeFarmerRow = (idx: number) => {
-    if (farmerDrafts.length === 1) return;
+    if (farmerDrafts.length === 1 && existingEntries.filter(e => !e._toDelete).length === 0) return;
     setFarmerDrafts(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleCreate = async (submitAfter: boolean) => {
-    // Validate project details
+  // Mark existing entry for deletion (soft, applied on save)
+  const markExistingForDelete = (id: string) => {
+    setExistingEntries(prev => prev.map(e => e.id === id ? { ...e, _toDelete: true } : e));
+  };
+
+  // ── Save / Submit handler ────────────────────────────────────────────────
+  const handleSave = async (submitAfter: boolean) => {
     if (!projectDraft.project_name.trim()) { setCreateError('Project name is required.'); return; }
     if (!projectDraft.organisation.trim())  { setCreateError('Organisation name is required.'); return; }
     if (!projectDraft.purpose.trim())       { setCreateError('Purpose is required.'); return; }
-    // Validate at least one farmer has a name
-    const validFarmers = farmerDrafts.filter(f => f.full_name.trim());
-    if (validFarmers.length === 0) { setCreateError('Add at least one farmer with a name.'); return; }
+
+    const validNewFarmers = farmerDrafts.filter(f => f.full_name.trim());
+    const remainingExisting = existingEntries.filter(e => !e._toDelete);
+
+    if (validNewFarmers.length === 0 && remainingExisting.length === 0) {
+      setCreateError('Add at least one farmer with a name.'); return;
+    }
 
     setCreateBusy(true); setCreateError('');
     try {
-      // 1. Create the project
-      const proj = await projectService.create({
-        project_name: projectDraft.project_name.trim(),
-        organisation: projectDraft.organisation.trim(),
-        credit_type:  projectDraft.credit_type,
-        total_amount_requested: projectDraft.total_amount_requested
-          ? Number(projectDraft.total_amount_requested) : undefined,
-        repayment_period_months: projectDraft.repayment_period_months
-          ? Number(projectDraft.repayment_period_months) : undefined,
-        purpose: projectDraft.purpose.trim(),
-      });
+      let projectId: string;
 
-      // 2. Add each farmer entry
-      for (const farmer of validFarmers) {
-        await projectService.addFarmer(proj.id, {
+      if (editingId) {
+        // PATCH existing project details
+        await projectService.update(editingId, {
+          project_name: projectDraft.project_name.trim(),
+          organisation: projectDraft.organisation.trim(),
+          credit_type:  projectDraft.credit_type,
+          total_amount_requested: projectDraft.total_amount_requested
+            ? Number(projectDraft.total_amount_requested) : undefined,
+          repayment_period_months: projectDraft.repayment_period_months
+            ? Number(projectDraft.repayment_period_months) : undefined,
+          purpose: projectDraft.purpose.trim(),
+        });
+
+        // Delete any entries marked for removal
+        for (const entry of existingEntries.filter(e => e._toDelete)) {
+          await projectService.removeFarmer(editingId, entry.id);
+        }
+
+        projectId = editingId;
+      } else {
+        // CREATE new project
+        const proj = await projectService.create({
+          project_name: projectDraft.project_name.trim(),
+          organisation: projectDraft.organisation.trim(),
+          credit_type:  projectDraft.credit_type,
+          total_amount_requested: projectDraft.total_amount_requested
+            ? Number(projectDraft.total_amount_requested) : undefined,
+          repayment_period_months: projectDraft.repayment_period_months
+            ? Number(projectDraft.repayment_period_months) : undefined,
+          purpose: projectDraft.purpose.trim(),
+        });
+        projectId = proj.id;
+      }
+
+      // POST new farmer rows
+      for (const farmer of validNewFarmers) {
+        await projectService.addFarmer(projectId, {
           ...farmer,
           amount_requested: farmer.amount_requested || null,
           farm_size_acres:  farmer.farm_size_acres  || null,
         });
       }
 
-      // 3. Optionally submit
+      // Optionally submit
       if (submitAfter) {
-        await projectService.submit(proj.id);
+        await projectService.submit(projectId);
       }
 
+      const projectName = projectDraft.project_name.trim();
       showMsg(submitAfter
-        ? `Project "${proj.project_name}" created and submitted for review.`
-        : `Project "${proj.project_name}" saved as draft.`
+        ? `"${projectName}" ${editingId ? 'updated and ' : ''}submitted for review.`
+        : `"${projectName}" ${editingId ? 'updated and ' : ''}saved as draft.`
       );
 
-      // Reset form and go back to list
+      // Reset and go back to list
+      setEditingId(null);
       setProjectDraft(blankProject());
       setFarmerDrafts([blankFarmer()]);
+      setExistingEntries([]);
       setCreateStep('details');
       setView('list');
       projects.refetch();
 
     } catch (err: any) {
-      setCreateError(err?.response?.data?.detail ?? 'Failed to create project. Please try again.');
+      setCreateError(err?.response?.data?.detail ?? 'Failed to save project. Please try again.');
     } finally {
       setCreateBusy(false);
     }
@@ -173,14 +265,19 @@ export default function AdminProjects() {
   const others    = list.filter(p => !['submitted', 'under_review'].includes(p.status));
 
   // ══════════════════════════════════════════════════════════════
-  // CREATE VIEW
+  // CREATE / EDIT VIEW
   // ══════════════════════════════════════════════════════════════
   if (view === 'create') {
+    const isEditing = !!editingId;
+    const activeExisting = existingEntries.filter(e => !e._toDelete);
+
     return (
       <div>
         <PageHeader
-          title="New Project Application"
-          subtitle="Create a group credit application on behalf of a partner organisation."
+          title={isEditing ? 'Edit Project Application' : 'New Project Application'}
+          subtitle={isEditing
+            ? 'Update project details and farmer entries, then re-save or submit.'
+            : 'Create a group credit application on behalf of a partner organisation.'}
         />
 
         {/* Step indicator */}
@@ -197,11 +294,13 @@ export default function AdminProjects() {
                 boxShadow: createStep === step ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
               }}
             >
-              {i + 1}. {step === 'details' ? 'Project Details' : `Farmer Entries (${farmerDrafts.length})`}
+              {i + 1}. {step === 'details'
+                ? 'Project Details'
+                : `Farmer Entries (${activeExisting.length + farmerDrafts.filter(f => f.full_name.trim()).length})`}
             </button>
           ))}
           <button
-            onClick={() => setView('list')}
+            onClick={() => { setView('list'); setEditingId(null); }}
             style={{
               marginLeft: 'auto', padding: '8px 14px', borderRadius: 8,
               border: '1px solid var(--col-border)', background: 'none',
@@ -268,7 +367,7 @@ export default function AdminProjects() {
                 onChange={e => setProjectDraft(p => ({ ...p, purpose: e.target.value }))} />
             </div>
             <Button onClick={() => setCreateStep('farmers')} style={{ marginTop: 'var(--sp-sm)' }}>
-              Next: Add Farmers →
+              Next: Farmer Entries →
             </Button>
           </Card>
         )}
@@ -278,7 +377,9 @@ export default function AdminProjects() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-md)' }}>
               <p style={{ margin: 0, fontSize: 14, color: 'var(--col-muted)' }}>
-                Add all farmers covered under this project. Each farmer can have their own credit amount.
+                {isEditing
+                  ? 'Existing entries are shown below. Remove any, or add new farmers.'
+                  : 'Add all farmers covered under this project.'}
               </p>
               <button
                 onClick={addFarmerRow}
@@ -293,14 +394,51 @@ export default function AdminProjects() {
               </button>
             </div>
 
+            {/* ── Existing entries (when editing) ── */}
+            {isEditing && activeExisting.length > 0 && (
+              <>
+                <p style={{ fontSize: 12, color: 'var(--col-muted)', marginBottom: 8, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  Saved Entries ({activeExisting.length})
+                </p>
+                {activeExisting.map((entry) => (
+                  <Card key={entry.id} style={{
+                    marginBottom: 'var(--sp-sm)', padding: '12px 16px',
+                    borderLeft: '3px solid var(--col-border)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ fontSize: 13 }}>{entry.full_name}</strong>
+                        <span style={{ fontSize: 12, color: 'var(--col-muted)', marginLeft: 10 }}>
+                          {entry.phone || ''}{entry.district ? ` · ${entry.district}` : ''}{entry.amount_requested ? ` · GHS ${Number(entry.amount_requested).toLocaleString()}` : ''}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => markExistingForDelete(entry.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
+                    </div>
+                  </Card>
+                ))}
+                <p style={{ fontSize: 12, color: 'var(--col-muted)', margin: '4px 0 16px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  New Entries
+                </p>
+              </>
+            )}
+
+            {/* ── New farmer rows ── */}
             {farmerDrafts.map((farmer, idx) => (
               <Card key={idx} style={{ marginBottom: 'var(--sp-sm)', position: 'relative' }}>
                 <div style={{
                   display: 'flex', justifyContent: 'space-between',
                   alignItems: 'center', marginBottom: 'var(--sp-sm)',
                 }}>
-                  <strong style={{ fontSize: 13 }}>Farmer {idx + 1}{farmer.full_name ? ` — ${farmer.full_name}` : ''}</strong>
-                  {farmerDrafts.length > 1 && (
+                  <strong style={{ fontSize: 13 }}>
+                    {isEditing ? 'New Farmer' : `Farmer ${idx + 1}`}
+                    {farmer.full_name ? ` — ${farmer.full_name}` : ''}
+                  </strong>
+                  {(farmerDrafts.length > 1 || activeExisting.length > 0) && (
                     <button onClick={() => removeFarmerRow(idx)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Trash2 size={14} /> Remove
@@ -390,32 +528,34 @@ export default function AdminProjects() {
             ))}
 
             {/* Total summary */}
-            {farmerDrafts.some(f => f.amount_requested) && (
+            {(activeExisting.some(e => e.amount_requested) || farmerDrafts.some(f => f.amount_requested)) && (
               <div style={{
                 padding: '12px 16px', borderRadius: 8, marginBottom: 'var(--sp-md)',
                 background: 'var(--col-surface)', border: '1px solid var(--col-border)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontSize: 14, color: 'var(--col-muted)' }}>
-                  {farmerDrafts.filter(f => f.full_name.trim()).length} farmers
+                  {activeExisting.length + farmerDrafts.filter(f => f.full_name.trim()).length} farmers
                 </span>
                 <strong style={{ fontSize: 15 }}>
-                  Total: GHS {farmerDrafts.reduce((sum, f) =>
-                    sum + (Number(f.amount_requested) || 0), 0).toLocaleString()}
+                  Total: GHS {(
+                    activeExisting.reduce((sum, e) => sum + (Number(e.amount_requested) || 0), 0) +
+                    farmerDrafts.reduce((sum, f) => sum + (Number(f.amount_requested) || 0), 0)
+                  ).toLocaleString()}
                 </strong>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 'var(--sp-sm)' }}>
               <Button
-                onClick={() => handleCreate(false)}
+                onClick={() => handleSave(false)}
                 disabled={createBusy}
                 style={{ background: 'var(--col-surface)', color: 'var(--col-text)', border: '1px solid var(--col-border)' }}
               >
                 {createBusy ? 'Saving…' : '💾 Save as Draft'}
               </Button>
               <Button
-                onClick={() => handleCreate(true)}
+                onClick={() => handleSave(true)}
                 disabled={createBusy}
               >
                 {createBusy ? 'Submitting…' : <><Send size={14} style={{ marginRight: 6 }} />Submit for Review</>}
@@ -446,7 +586,7 @@ export default function AdminProjects() {
         title="Project Applications"
         subtitle="Organisation-based group credit applications."
         action={
-          <Button onClick={() => { setView('create'); setCreateStep('details'); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Button onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Plus size={15} /> New Project
           </Button>
         }
@@ -472,7 +612,10 @@ export default function AdminProjects() {
             <ProjectCard key={proj.id} proj={proj}
               expanded={expandedId === proj.id}
               onToggle={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
-              onAction={openAction} busy={busy === proj.id} />
+              onAction={openAction}
+              onEdit={openEdit}
+              onQuickSubmit={handleQuickSubmit}
+              busy={busy === proj.id} />
           ))}
         </>
       )}
@@ -519,7 +662,7 @@ export default function AdminProjects() {
         <Card>
           <div style={{ padding: 'var(--sp-lg)', textAlign: 'center' }}>
             <p style={{ color: 'var(--col-muted)', marginBottom: 'var(--sp-md)' }}>No project applications yet.</p>
-            <Button onClick={() => setView('create')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Button onClick={openNew} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Plus size={15} /> Create First Project
             </Button>
           </div>
@@ -529,7 +672,10 @@ export default function AdminProjects() {
           <ProjectCard key={proj.id} proj={proj}
             expanded={expandedId === proj.id}
             onToggle={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
-            onAction={openAction} busy={busy === proj.id} />
+            onAction={openAction}
+            onEdit={openEdit}
+            onQuickSubmit={handleQuickSubmit}
+            busy={busy === proj.id} />
         ))
       )}
     </div>
@@ -537,14 +683,18 @@ export default function AdminProjects() {
 }
 
 // ── Project Card (review list) ──────────────────────────────────────────────
-function ProjectCard({ proj, expanded, onToggle, onAction, busy }: {
+function ProjectCard({ proj, expanded, onToggle, onAction, onEdit, onQuickSubmit, busy }: {
   proj: ProjectApplication;
   expanded: boolean;
   onToggle: () => void;
   onAction: (id: string, type: 'approve' | 'reject') => void;
+  onEdit: (proj: ProjectApplication) => void;
+  onQuickSubmit: (proj: ProjectApplication) => void;
   busy: boolean;
 }) {
-  const canAct = ['submitted', 'under_review'].includes(proj.status);
+  const canAct     = ['submitted', 'under_review'].includes(proj.status);
+  const isDraft    = proj.status === 'draft';
+
   return (
     <Card style={{ marginBottom: 'var(--sp-sm)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
@@ -560,7 +710,28 @@ function ProjectCard({ proj, expanded, onToggle, onAction, busy }: {
             {proj.submitted_at ? ` · Submitted ${new Date(proj.submitted_at).toLocaleDateString()}` : ''}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Draft actions: Edit + Submit */}
+          {isDraft && (
+            <>
+              <Button
+                onClick={() => onEdit(proj)}
+                disabled={busy}
+                style={{ fontSize: 12, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 5,
+                  background: 'var(--col-surface)', color: 'var(--col-text)', border: '1px solid var(--col-border)' }}
+              >
+                <Pencil size={12} /> Edit Draft
+              </Button>
+              <Button
+                onClick={() => onQuickSubmit(proj)}
+                disabled={busy}
+                style={{ fontSize: 12, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 5 }}
+              >
+                <Send size={12} /> Submit
+              </Button>
+            </>
+          )}
+          {/* Submitted/Under Review: Approve + Reject */}
           {canAct && (
             <>
               <Button onClick={() => onAction(proj.id, 'approve')} disabled={busy}

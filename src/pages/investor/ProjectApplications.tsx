@@ -3,7 +3,7 @@ import { PageHeader, Card, Button, Badge, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { projectService, type ProjectApplication, type ProjectFarmerEntry } from '../../lib/services/projects';
 import { toArray } from '../../lib/api';
-import { Plus, Trash2, ChevronDown, ChevronUp, Send, UserPlus, X } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Send, UserPlus, X, Pencil } from 'lucide-react';
 import '../farmer/farmer.css';
 import './investor.css';
 
@@ -17,7 +17,6 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'neutral
   withdrawn:    'neutral',
 };
 
-// ── Match admin credit types exactly ────────────────────────────────────────
 const CREDIT_TYPES = ['direct_financing', 'farm_inputs', 'structured_training', 'mixed'];
 const FLOCK_TYPES  = ['broilers', 'layers', 'guinea_fowl', 'local_birds', 'mixed'];
 const REGIONS      = [
@@ -40,6 +39,7 @@ const blankProject = () => ({
 });
 
 type FarmerDraft = ReturnType<typeof blankFarmer>;
+type ExistingEntry = ProjectFarmerEntry & { _toDelete?: boolean };
 type View = 'list' | 'create';
 
 export default function ProjectApplications() {
@@ -48,98 +48,194 @@ export default function ProjectApplications() {
 
   const [view,       setView]       = useState<View>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [busy,       setBusy]       = useState(false);
+  const [busyId,     setBusyId]     = useState<string | null>(null);
   const [msg,        setMsg]        = useState('');
   const [msgType,    setMsgType]    = useState<'success' | 'error'>('success');
 
-  // ── Create state ──────────────────────────────────────────────────────────
-  const [projectDraft, setProjectDraft] = useState(blankProject());
-  const [farmerDrafts, setFarmerDrafts] = useState<FarmerDraft[]>([blankFarmer()]);
-  const [createStep,   setCreateStep]   = useState<'details' | 'farmers'>('details');
-  const [createBusy,   setCreateBusy]   = useState(false);
-  const [createError,  setCreateError]  = useState('');
+  // ── Create / Edit state ───────────────────────────────────────────────────
+  const [editingId,       setEditingId]       = useState<string | null>(null);
+  const [projectDraft,    setProjectDraft]    = useState(blankProject());
+  const [farmerDrafts,    setFarmerDrafts]    = useState<FarmerDraft[]>([blankFarmer()]);
+  const [existingEntries, setExistingEntries] = useState<ExistingEntry[]>([]);
+  const [createStep,      setCreateStep]      = useState<'details' | 'farmers'>('details');
+  const [createBusy,      setCreateBusy]      = useState(false);
+  const [createError,     setCreateError]     = useState('');
 
   const showMsg = (text: string, type: 'success' | 'error' = 'success') => {
     setMsg(text); setMsgType(type);
     setTimeout(() => setMsg(''), 5000);
   };
 
-  const resetForm = () => {
+  // ── Open new project form ─────────────────────────────────────────────────
+  const openNew = () => {
+    setEditingId(null);
     setProjectDraft(blankProject());
     setFarmerDrafts([blankFarmer()]);
-    setCreateStep('details');
+    setExistingEntries([]);
     setCreateError('');
+    setCreateStep('details');
+    setView('create');
   };
 
+  // ── Open edit form for an existing draft ──────────────────────────────────
+  const openEdit = (proj: ProjectApplication) => {
+    setEditingId(proj.id);
+    setProjectDraft({
+      project_name:            proj.project_name,
+      organisation:            proj.organisation,
+      credit_type:             proj.credit_type,
+      total_amount_requested:  proj.total_amount_requested ?? '',
+      repayment_period_months: proj.repayment_period_months != null ? String(proj.repayment_period_months) : '',
+      purpose:                 proj.purpose,
+    });
+    setExistingEntries(proj.farmer_entries.map(fe => ({ ...fe })));
+    setFarmerDrafts([blankFarmer()]);
+    setCreateError('');
+    setCreateStep('details');
+    setView('create');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setProjectDraft(blankProject());
+    setFarmerDrafts([blankFarmer()]);
+    setExistingEntries([]);
+    setCreateError('');
+    setView('list');
+  };
+
+  // ── Farmer row helpers ────────────────────────────────────────────────────
   const updateFarmer = (idx: number, field: keyof FarmerDraft, value: string | number | null) =>
     setFarmerDrafts(prev => prev.map((f, i) => i === idx ? { ...f, [field]: value } : f));
 
   const addFarmerRow    = () => setFarmerDrafts(prev => [...prev, blankFarmer()]);
   const removeFarmerRow = (idx: number) => {
-    if (farmerDrafts.length === 1) return;
+    if (farmerDrafts.length === 1 && existingEntries.filter(e => !e._toDelete).length === 0) return;
     setFarmerDrafts(prev => prev.filter((_, i) => i !== idx));
   };
+  const markExistingForDelete = (id: string) =>
+    setExistingEntries(prev => prev.map(e => e.id === id ? { ...e, _toDelete: true } : e));
 
-  const handleCreate = async (submitAfter: boolean) => {
+  // ── Save / Submit ─────────────────────────────────────────────────────────
+  const handleSave = async (submitAfter: boolean) => {
     if (!projectDraft.project_name.trim()) { setCreateError('Project name is required.'); return; }
     if (!projectDraft.organisation.trim())  { setCreateError('Organisation name is required.'); return; }
     if (!projectDraft.purpose.trim())       { setCreateError('Purpose is required.'); return; }
-    const validFarmers = farmerDrafts.filter(f => f.full_name.trim());
-    if (validFarmers.length === 0) { setCreateError('Add at least one farmer with a name.'); return; }
+
+    const validNewFarmers  = farmerDrafts.filter(f => f.full_name.trim());
+    const remainingExisting = existingEntries.filter(e => !e._toDelete);
+
+    if (validNewFarmers.length === 0 && remainingExisting.length === 0) {
+      setCreateError('Add at least one farmer with a name.'); return;
+    }
 
     setCreateBusy(true); setCreateError('');
     try {
-      const proj = await projectService.create({
-        project_name: projectDraft.project_name.trim(),
-        organisation: projectDraft.organisation.trim(),
-        credit_type:  projectDraft.credit_type,
-        total_amount_requested: projectDraft.total_amount_requested
-          ? Number(projectDraft.total_amount_requested) : undefined,
-        repayment_period_months: projectDraft.repayment_period_months
-          ? Number(projectDraft.repayment_period_months) : undefined,
-        purpose: projectDraft.purpose.trim(),
-      });
-      for (const farmer of validFarmers) {
-        await projectService.addFarmer(proj.id, {
+      let projectId: string;
+
+      if (editingId) {
+        // PATCH project details
+        await projectService.update(editingId, {
+          project_name: projectDraft.project_name.trim(),
+          organisation: projectDraft.organisation.trim(),
+          credit_type:  projectDraft.credit_type,
+          total_amount_requested: projectDraft.total_amount_requested
+            ? Number(projectDraft.total_amount_requested) : undefined,
+          repayment_period_months: projectDraft.repayment_period_months
+            ? Number(projectDraft.repayment_period_months) : undefined,
+          purpose: projectDraft.purpose.trim(),
+        });
+        // Delete removed entries
+        for (const entry of existingEntries.filter(e => e._toDelete)) {
+          await projectService.removeFarmer(editingId, entry.id);
+        }
+        projectId = editingId;
+      } else {
+        const proj = await projectService.create({
+          project_name: projectDraft.project_name.trim(),
+          organisation: projectDraft.organisation.trim(),
+          credit_type:  projectDraft.credit_type,
+          total_amount_requested: projectDraft.total_amount_requested
+            ? Number(projectDraft.total_amount_requested) : undefined,
+          repayment_period_months: projectDraft.repayment_period_months
+            ? Number(projectDraft.repayment_period_months) : undefined,
+          purpose: projectDraft.purpose.trim(),
+        });
+        projectId = proj.id;
+      }
+
+      // POST new farmer rows
+      for (const farmer of validNewFarmers) {
+        await projectService.addFarmer(projectId, {
           ...farmer,
           amount_requested: farmer.amount_requested || null,
           farm_size_acres:  farmer.farm_size_acres  || null,
         });
       }
-      if (submitAfter) await projectService.submit(proj.id);
+
+      if (submitAfter) await projectService.submit(projectId);
+
+      const name = projectDraft.project_name.trim();
       showMsg(submitAfter
-        ? `Project "${proj.project_name}" submitted for review.`
-        : `Project "${proj.project_name}" saved as draft.`
+        ? `"${name}" ${editingId ? 'updated and ' : ''}submitted for review.`
+        : `"${name}" ${editingId ? 'updated and ' : ''}saved as draft.`
       );
-      resetForm(); setView('list'); projects.refetch();
+
+      cancelEdit();
+      projects.refetch();
+
     } catch (err: any) {
-      setCreateError(err?.response?.data?.detail ?? 'Failed to create project. Please try again.');
+      setCreateError(err?.response?.data?.detail ?? 'Failed to save project. Please try again.');
     } finally {
       setCreateBusy(false);
     }
   };
 
-  const handleWithdraw = async (id: string) => {
-    setBusy(true);
+  // ── Quick submit from list ────────────────────────────────────────────────
+  const handleQuickSubmit = async (proj: ProjectApplication) => {
+    if (proj.farmer_count === 0) {
+      showMsg('Add at least one farmer before submitting — click Edit Draft.', 'error'); return;
+    }
+    setBusyId(proj.id);
     try {
-      await projectService.withdraw(id);
+      await projectService.submit(proj.id);
+      showMsg(`"${proj.project_name}" submitted for review.`);
       projects.refetch();
-    } catch {
-      showMsg('Withdraw failed.', 'error');
+    } catch (err: any) {
+      showMsg(err?.response?.data?.detail ?? 'Submit failed.', 'error');
     } finally {
-      setBusy(false);
+      setBusyId(null);
+    }
+  };
+
+  // ── Withdraw ──────────────────────────────────────────────────────────────
+  const handleWithdraw = async (proj: ProjectApplication) => {
+    setBusyId(proj.id);
+    try {
+      await projectService.withdraw(proj.id);
+      showMsg(`"${proj.project_name}" withdrawn.`);
+      projects.refetch();
+    } catch (err: any) {
+      showMsg(err?.response?.data?.detail ?? 'Withdraw failed.', 'error');
+    } finally {
+      setBusyId(null);
     }
   };
 
   // ══════════════════════════════════════════════════════════════
-  // CREATE VIEW
+  // CREATE / EDIT VIEW
   // ══════════════════════════════════════════════════════════════
   if (view === 'create') {
+    const isEditing     = !!editingId;
+    const activeExisting = existingEntries.filter(e => !e._toDelete);
+
     return (
       <div>
         <PageHeader
-          title="New Project Application"
-          subtitle="Apply for group credit on behalf of farmers under your organisation."
+          title={isEditing ? 'Edit Project Application' : 'New Project Application'}
+          subtitle={isEditing
+            ? 'Update project details and farmer entries, then re-save or submit.'
+            : 'Apply for group credit on behalf of farmers under your organisation.'}
         />
 
         {/* Step indicator */}
@@ -156,11 +252,13 @@ export default function ProjectApplications() {
                 boxShadow: createStep === step ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
               }}
             >
-              {i + 1}. {step === 'details' ? 'Project Details' : `Farmer Entries (${farmerDrafts.length})`}
+              {i + 1}. {step === 'details'
+                ? 'Project Details'
+                : `Farmer Entries (${activeExisting.length + farmerDrafts.filter(f => f.full_name.trim()).length})`}
             </button>
           ))}
           <button
-            onClick={() => { setView('list'); resetForm(); }}
+            onClick={cancelEdit}
             style={{
               marginLeft: 'auto', padding: '8px 14px', borderRadius: 8,
               border: '1px solid var(--col-border)', background: 'none',
@@ -227,7 +325,7 @@ export default function ProjectApplications() {
                 onChange={e => setProjectDraft(p => ({ ...p, purpose: e.target.value }))} />
             </div>
             <Button onClick={() => setCreateStep('farmers')} style={{ marginTop: 'var(--sp-sm)' }}>
-              Next: Add Farmers →
+              Next: Farmer Entries →
             </Button>
           </Card>
         )}
@@ -237,7 +335,9 @@ export default function ProjectApplications() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-md)' }}>
               <p style={{ margin: 0, fontSize: 14, color: 'var(--col-muted)' }}>
-                Add all farmers covered under this project. Each farmer can have their own credit amount.
+                {isEditing
+                  ? 'Existing entries are shown below. Remove any, or add new farmers.'
+                  : 'Add all farmers covered under this project. Each farmer can have their own credit amount.'}
               </p>
               <button
                 onClick={addFarmerRow}
@@ -252,11 +352,48 @@ export default function ProjectApplications() {
               </button>
             </div>
 
+            {/* Existing saved entries */}
+            {isEditing && activeExisting.length > 0 && (
+              <>
+                <p style={{ fontSize: 12, color: 'var(--col-muted)', marginBottom: 8, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  Saved Entries ({activeExisting.length})
+                </p>
+                {activeExisting.map(entry => (
+                  <Card key={entry.id} style={{
+                    marginBottom: 'var(--sp-sm)', padding: '12px 16px',
+                    borderLeft: '3px solid var(--col-border)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ fontSize: 13 }}>{entry.full_name}</strong>
+                        <span style={{ fontSize: 12, color: 'var(--col-muted)', marginLeft: 10 }}>
+                          {entry.phone || ''}{entry.district ? ` · ${entry.district}` : ''}{entry.amount_requested ? ` · GHS ${Number(entry.amount_requested).toLocaleString()}` : ''}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => markExistingForDelete(entry.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
+                    </div>
+                  </Card>
+                ))}
+                <p style={{ fontSize: 12, color: 'var(--col-muted)', margin: '4px 0 16px', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  New Entries
+                </p>
+              </>
+            )}
+
+            {/* New farmer rows */}
             {farmerDrafts.map((farmer, idx) => (
               <Card key={idx} style={{ marginBottom: 'var(--sp-sm)', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-sm)' }}>
-                  <strong style={{ fontSize: 13 }}>Farmer {idx + 1}{farmer.full_name ? ` — ${farmer.full_name}` : ''}</strong>
-                  {farmerDrafts.length > 1 && (
+                  <strong style={{ fontSize: 13 }}>
+                    {isEditing ? 'New Farmer' : `Farmer ${idx + 1}`}
+                    {farmer.full_name ? ` — ${farmer.full_name}` : ''}
+                  </strong>
+                  {(farmerDrafts.length > 1 || activeExisting.length > 0) && (
                     <button onClick={() => removeFarmerRow(idx)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Trash2 size={14} /> Remove
@@ -332,32 +469,35 @@ export default function ProjectApplications() {
               </Card>
             ))}
 
-            {farmerDrafts.some(f => f.amount_requested) && (
+            {/* Total summary */}
+            {(activeExisting.some(e => e.amount_requested) || farmerDrafts.some(f => f.amount_requested)) && (
               <div style={{
                 padding: '12px 16px', borderRadius: 8, marginBottom: 'var(--sp-md)',
                 background: 'var(--col-surface)', border: '1px solid var(--col-border)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontSize: 14, color: 'var(--col-muted)' }}>
-                  {farmerDrafts.filter(f => f.full_name.trim()).length} farmers
+                  {activeExisting.length + farmerDrafts.filter(f => f.full_name.trim()).length} farmers
                 </span>
                 <strong style={{ fontSize: 15 }}>
-                  Total: GHS {farmerDrafts.reduce((sum, f) =>
-                    sum + (Number(f.amount_requested) || 0), 0).toLocaleString()}
+                  Total: GHS {(
+                    activeExisting.reduce((sum, e) => sum + (Number(e.amount_requested) || 0), 0) +
+                    farmerDrafts.reduce((sum, f) => sum + (Number(f.amount_requested) || 0), 0)
+                  ).toLocaleString()}
                 </strong>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 'var(--sp-sm)' }}>
               <Button
-                onClick={() => handleCreate(false)}
+                onClick={() => handleSave(false)}
                 disabled={createBusy}
                 style={{ background: 'var(--col-surface)', color: 'var(--col-text)', border: '1px solid var(--col-border)' }}
               >
                 {createBusy ? 'Saving…' : '💾 Save as Draft'}
               </Button>
-              <Button onClick={() => handleCreate(true)} disabled={createBusy}>
-                {createBusy ? 'Submitting…' : <><Send size={14} style={{ marginRight: 6 }} />Submit Project Application</>}
+              <Button onClick={() => handleSave(true)} disabled={createBusy}>
+                {createBusy ? 'Submitting…' : <><Send size={14} style={{ marginRight: 6 }} />Submit for Review</>}
               </Button>
               <button
                 onClick={() => setCreateStep('details')}
@@ -385,7 +525,7 @@ export default function ProjectApplications() {
         title="Project Applications"
         subtitle="Apply for group credit on behalf of farmers under your organisation."
         action={
-          <Button onClick={() => { setView('create'); setCreateStep('details'); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Button onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Plus size={15} /> New Project Application
           </Button>
         }
@@ -409,80 +549,122 @@ export default function ProjectApplications() {
         <Card>
           <div style={{ padding: 'var(--sp-lg)', textAlign: 'center' }}>
             <p style={{ color: 'var(--col-muted)', marginBottom: 'var(--sp-md)' }}>No project applications yet.</p>
-            <Button onClick={() => setView('create')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Button onClick={openNew} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Plus size={15} /> Create First Project
             </Button>
           </div>
         </Card>
-      ) : list.map(proj => (
-        <Card key={proj.id} style={{ marginBottom: 'var(--sp-sm)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 15 }}>{proj.project_name}</strong>
-                <Badge variant={STATUS_VARIANT[proj.status] ?? 'neutral'}>{proj.status.replace(/_/g, ' ')}</Badge>
-                <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>{proj.reference}</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--col-muted)' }}>
-                {proj.organisation} · {proj.farmer_count} farmer{proj.farmer_count !== 1 ? 's' : ''}
-                {' · '}{proj.credit_type.replace(/_/g, ' ')}
-                {proj.total_amount_requested ? ` · GHS ${Number(proj.total_amount_requested).toLocaleString()}` : ''}
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {proj.status === 'draft' && (
-                <button onClick={() => handleWithdraw(proj.id)} disabled={busy}
-                  style={{ fontSize: 12, color: 'var(--col-danger)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  Withdraw
-                </button>
-              )}
-              <button onClick={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--col-muted)' }}>
-                {expandedId === proj.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-            </div>
-          </div>
+      ) : list.map(proj => {
+        const isDraft = proj.status === 'draft';
+        const canWithdraw = ['draft', 'submitted', 'under_review'].includes(proj.status);
+        const isBusy  = busyId === proj.id;
 
-          {expandedId === proj.id && (
-            <div style={{ marginTop: 'var(--sp-md)', borderTop: '1px solid var(--col-border)', paddingTop: 'var(--sp-md)' }}>
-              <p style={{ fontSize: 14, marginBottom: 'var(--sp-sm)' }}><strong>Purpose:</strong> {proj.purpose}</p>
-              {proj.rejection_reason && (
-                <p style={{ fontSize: 14, color: 'var(--col-danger)' }}><strong>Rejection reason:</strong> {proj.rejection_reason}</p>
-              )}
-              {proj.reviewer_notes && (
-                <p style={{ fontSize: 14 }}><strong>Reviewer notes:</strong> {proj.reviewer_notes}</p>
-              )}
-              <SectionTitle>Farmer Entries</SectionTitle>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th><th>Phone</th><th>Ghana Card</th>
-                      <th>District</th><th>Region</th><th>Farm</th>
-                      <th>Flock</th><th>Size</th><th>Amount (GHS)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {proj.farmer_entries.map(fe => (
-                      <tr key={fe.id}>
-                        <td><strong>{fe.full_name}</strong></td>
-                        <td>{fe.phone || '—'}</td>
-                        <td>{fe.ghana_card_number || '—'}</td>
-                        <td>{fe.district || '—'}</td>
-                        <td>{fe.region || '—'}</td>
-                        <td>{fe.farm_name || '—'}</td>
-                        <td>{fe.flock_type ? fe.flock_type.replace(/_/g, ' ') : '—'}</td>
-                        <td>{fe.flock_size ? fe.flock_size.toLocaleString() : '—'}</td>
-                        <td>{fe.amount_requested ? Number(fe.amount_requested).toLocaleString() : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        return (
+          <Card key={proj.id} style={{ marginBottom: 'var(--sp-sm)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 15 }}>{proj.project_name}</strong>
+                  <Badge variant={STATUS_VARIANT[proj.status] ?? 'neutral'}>{proj.status.replace(/_/g, ' ')}</Badge>
+                  <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>{proj.reference}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--col-muted)' }}>
+                  {proj.organisation} · {proj.farmer_count} farmer{proj.farmer_count !== 1 ? 's' : ''}
+                  {' · '}{proj.credit_type.replace(/_/g, ' ')}
+                  {proj.total_amount_requested ? ` · GHS ${Number(proj.total_amount_requested).toLocaleString()}` : ''}
+                  {proj.submitted_at ? ` · Submitted ${new Date(proj.submitted_at).toLocaleDateString()}` : ''}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Draft: Edit + Submit */}
+                {isDraft && (
+                  <>
+                    <Button
+                      onClick={() => openEdit(proj)}
+                      disabled={isBusy}
+                      style={{
+                        fontSize: 12, padding: '6px 14px',
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        background: 'var(--col-surface)', color: 'var(--col-text)',
+                        border: '1px solid var(--col-border)',
+                      }}
+                    >
+                      <Pencil size={12} /> Edit Draft
+                    </Button>
+                    <Button
+                      onClick={() => handleQuickSubmit(proj)}
+                      disabled={isBusy}
+                      style={{ fontSize: 12, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 5 }}
+                    >
+                      <Send size={12} /> Submit
+                    </Button>
+                  </>
+                )}
+                {/* Withdraw (draft / submitted / under_review) */}
+                {canWithdraw && (
+                  <button
+                    onClick={() => handleWithdraw(proj)}
+                    disabled={isBusy}
+                    style={{
+                      fontSize: 12, color: 'var(--col-danger)',
+                      background: 'none', border: 'none', cursor: isBusy ? 'not-allowed' : 'pointer',
+                      opacity: isBusy ? 0.5 : 1,
+                    }}
+                  >
+                    {isBusy ? 'Working…' : 'Withdraw'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--col-muted)' }}
+                >
+                  {expandedId === proj.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
               </div>
             </div>
-          )}
-        </Card>
-      ))}
+
+            {expandedId === proj.id && (
+              <div style={{ marginTop: 'var(--sp-md)', borderTop: '1px solid var(--col-border)', paddingTop: 'var(--sp-md)' }}>
+                <p style={{ fontSize: 14, marginBottom: 'var(--sp-sm)' }}><strong>Purpose:</strong> {proj.purpose}</p>
+                {proj.rejection_reason && (
+                  <p style={{ fontSize: 14, color: 'var(--col-danger)' }}><strong>Rejection reason:</strong> {proj.rejection_reason}</p>
+                )}
+                {proj.reviewer_notes && (
+                  <p style={{ fontSize: 14 }}><strong>Reviewer notes:</strong> {proj.reviewer_notes}</p>
+                )}
+                <SectionTitle>Farmer Entries ({proj.farmer_count})</SectionTitle>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th><th>Phone</th><th>Ghana Card</th>
+                        <th>District</th><th>Region</th><th>Farm</th>
+                        <th>Flock</th><th>Size</th><th>Amount (GHS)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {proj.farmer_entries.map(fe => (
+                        <tr key={fe.id}>
+                          <td><strong>{fe.full_name}</strong></td>
+                          <td>{fe.phone || '—'}</td>
+                          <td>{fe.ghana_card_number || '—'}</td>
+                          <td>{fe.district || '—'}</td>
+                          <td>{fe.region || '—'}</td>
+                          <td>{fe.farm_name || '—'}</td>
+                          <td>{fe.flock_type ? fe.flock_type.replace(/_/g, ' ') : '—'}</td>
+                          <td>{fe.flock_size ? fe.flock_size.toLocaleString() : '—'}</td>
+                          <td>{fe.amount_requested ? Number(fe.amount_requested).toLocaleString() : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 }
