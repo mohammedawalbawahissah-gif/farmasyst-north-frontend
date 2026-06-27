@@ -10,7 +10,7 @@ interface Message {
   content: string;
 }
 
-// ── Role-based display titles ────────────────────────────────────────────────
+// ── Role-based header titles ──────────────────────────────────────────────────
 const ROLE_TITLES: Record<string, string> = {
   farmer:             'Farmer Assistant',
   investor:           'Investor Assistant',
@@ -61,13 +61,10 @@ export default function AIFloatingWidget() {
   const location = useLocation();
   const role = user?.role ?? 'farmer';
   const accentColor = ROLE_COLORS[role] ?? '#4A7C2F';
-
-  // Derive a friendly first name (fall back to "there" if not available)
-  const firstName = user?.first_name?.trim() || user?.full_name?.split(' ')[0] || 'there';
   const widgetTitle = ROLE_TITLES[role] ?? 'FarmAsyst AI';
+  const firstName = user?.first_name?.trim() || user?.full_name?.split(' ')[0] || 'there';
 
   const isAIPage = AI_PAGE_PATTERNS.some(p => location.pathname.endsWith(p));
-  if (isAIPage) return null;
 
   const [open,      setOpen]      = useState(false);
   const [minimized, setMinimized] = useState(false);
@@ -89,6 +86,9 @@ export default function AIFloatingWidget() {
   useEffect(() => {
     if (open && !minimized) textareaRef.current?.focus();
   }, [open, minimized]);
+
+  // Early return AFTER all hooks — fixes Rules of Hooks violation
+  if (isAIPage) return null;
 
   const sendMessage = async () => {
     if (!input.trim() || busy) return;
@@ -126,8 +126,9 @@ export default function AIFloatingWidget() {
             boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 1000,
             padding: 0, overflow: 'hidden',
           }}
-          title={widgetTitle}
+          title="AI Assistant"
         >
+          {/* Circular logo — no bg since the button itself is the bg */}
           <FarmAsystLogo size={56} circle />
           {unread > 0 && (
             <span style={{
@@ -164,13 +165,10 @@ export default function AIFloatingWidget() {
             }}
             onClick={() => minimized && setMinimized(false)}
           >
-            {/* Circular logo in header only */}
+            {/* Circular logo in header */}
             <FarmAsystLogo size={32} circle />
             <div style={{ flex: 1, minWidth: 0 }}>
-              {/* Role-based title */}
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>
-                {widgetTitle}
-              </div>
+              <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>{widgetTitle}</div>
               <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 1 }}>
                 {busy ? 'Thinking…' : 'Online'}
               </div>
@@ -203,7 +201,7 @@ export default function AIFloatingWidget() {
               }}>
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', marginTop: 24, padding: '0 8px' }}>
-                    {/* ── Personalised greeting — no logo here ── */}
+                    {/* No logo here — logo lives only in the header and bubble */}
                     <p style={{
                       fontSize: 15, fontWeight: 600,
                       color: accentColor,
@@ -214,7 +212,7 @@ export default function AIFloatingWidget() {
                     </p>
                     <p style={{
                       fontSize: 13, color: 'var(--col-muted)',
-                      lineHeight: 1.55, margin: '0 0 16px',
+                      lineHeight: 1.55, margin: '0 0 12px',
                     }}>
                       How can I help you today?
                     </p>
