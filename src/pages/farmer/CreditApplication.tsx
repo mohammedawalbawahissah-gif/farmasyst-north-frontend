@@ -10,11 +10,11 @@ import './farmer.css';
 type Step = 1 | 2 | 3 | 4;
 
 // ── Match admin credit types exactly ──────────────────────────────────────────
-const CREDIT_TYPES: { value: string; label: string; desc: string }[] = [
-  { value: 'direct_financing',  label: 'Direct Financing',    desc: 'Direct capital for startup, flock acquisition, or equipment' },
-  { value: 'farm_inputs',       label: 'Farm Inputs',         desc: 'Feed, vaccines, medications, and housing materials in-kind' },
-  { value: 'structured_training', label: 'Structured Training', desc: 'Enrolment in a structured training programme — free' },
-  { value: 'mixed',             label: 'Mixed',               desc: 'Combination of financing and in-kind support' },
+const CREDIT_TYPES: { value: string; label: string; icon: string; desc: string }[] = [
+  { value: 'direct_financing',    icon: '💰', label: 'Direct Financing',    desc: 'Direct capital for startup, flock acquisition, or equipment' },
+  { value: 'farm_inputs',         icon: '🌾', label: 'Farm Inputs',         desc: 'Feed, vaccines, medications, and housing materials in-kind' },
+  { value: 'structured_training', icon: '📚', label: 'Structured Training', desc: 'Enrolment in a structured training programme — free' },
+  { value: 'mixed',               icon: '🤝', label: 'Mixed',               desc: 'Combination of financing and in-kind support' },
 ];
 const DOC_TYPES = [
   { value: 'ghana_card',    label: 'Ghana Card' },
@@ -141,19 +141,66 @@ export default function CreditApplication() {
         {step === 1 && (
           <div className="app-step">
             <h3>What type of support are you applying for?</h3>
-            <div className="form-field" style={{ maxWidth: 420 }}>
-              <label>Credit Type <span className="required">*</span></label>
-              <select value={creditType} onChange={e => setCreditType(e.target.value)}>
-                <option value="">— Select a credit type —</option>
-                {CREDIT_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              {creditType && (
-                <span style={{ fontSize: 13, color: 'var(--col-muted)', marginTop: 6, display: 'block' }}>
-                  {CREDIT_TYPES.find(t => t.value === creditType)?.desc}
-                </span>
-              )}
+            <p style={{ color: 'var(--col-muted)', fontSize: 13, marginBottom: '1.25rem' }}>
+              Select the credit type that best matches your needs.
+            </p>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '0.85rem',
+              marginBottom: '1.5rem',
+            }}>
+              {CREDIT_TYPES.map(t => {
+                const selected = creditType === t.value;
+                return (
+                  <button
+                    key={t.value}
+                    onClick={() => setCreditType(t.value)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '0.5rem',
+                      padding: '1rem 1.1rem',
+                      borderRadius: 10,
+                      border: selected
+                        ? '2px solid var(--col-primary, #4A7C2F)'
+                        : '1.5px solid var(--col-border, #ddd)',
+                      background: selected
+                        ? 'var(--col-primary-light, #f0f7eb)'
+                        : 'var(--col-surface, #fff)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontFamily: 'inherit',
+                      transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
+                      boxShadow: selected ? '0 0 0 3px rgba(74,124,47,0.12)' : '0 1px 3px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <span style={{ fontSize: 28, lineHeight: 1 }}>{t.icon}</span>
+                    <strong style={{
+                      fontSize: 14,
+                      color: selected ? 'var(--col-primary, #4A7C2F)' : 'var(--col-text)',
+                    }}>
+                      {t.label}
+                    </strong>
+                    <span style={{ fontSize: 12, color: 'var(--col-muted)', lineHeight: 1.5 }}>
+                      {t.desc}
+                    </span>
+                    {selected && (
+                      <span style={{
+                        marginTop: 2,
+                        fontSize: 11, fontWeight: 700, letterSpacing: 0.4,
+                        color: 'var(--col-primary, #4A7C2F)',
+                        background: 'rgba(74,124,47,0.10)',
+                        borderRadius: 6, padding: '2px 8px',
+                        textTransform: 'uppercase',
+                      }}>
+                        Selected ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
             <div className="step-actions">
               <Button disabled={!creditType} onClick={() => setStep(2)}>Continue →</Button>
