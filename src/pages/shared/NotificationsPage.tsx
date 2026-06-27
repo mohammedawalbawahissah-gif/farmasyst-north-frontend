@@ -84,21 +84,22 @@ export default function NotificationsPage({ subtitle = 'All notifications and pl
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>
           {list.map(n => (
-            <Card
+            <div
               key={n.id}
               onClick={() => handleCardClick(n)}
+              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) =>
+                (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)')}
+              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) =>
+                (e.currentTarget.style.boxShadow = '')}
               style={{
                 opacity: n.is_read ? 0.7 : 1,
                 borderLeft: n.is_read ? undefined : '3px solid var(--col-primary)',
                 cursor: 'pointer',
                 transition: 'box-shadow 0.15s, opacity 0.15s',
+                borderRadius: 'inherit',
               }}
-              /* Hover handled via CSS-in-JS workaround with onMouse* */
-              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) =>
-                (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.10)')}
-              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) =>
-                (e.currentTarget.style.boxShadow = '')}
             >
+            <Card>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--sp-md)' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)', marginBottom: 4, flexWrap: 'wrap' }}>
@@ -133,6 +134,7 @@ export default function NotificationsPage({ subtitle = 'All notifications and pl
                 )}
               </div>
             </Card>
+            </div>
           ))}
         </div>
       )}

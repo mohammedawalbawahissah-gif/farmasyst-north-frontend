@@ -10,7 +10,7 @@
  *   <NotificationDetail notification={n} onClose={() => setSelected(null)} />
  */
 
-import { X, Bell } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { Notification } from '../../types';
 
 const PRIORITY_COLORS: Record<string, { bg: string; text: string; border: string; label: string }> = {
