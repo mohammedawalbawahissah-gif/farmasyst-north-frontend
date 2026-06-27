@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Button, SectionTitle, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
+import { api } from '../../lib/api';
 import { toArray } from '../../lib/api';
 import { Camera, RefreshCw, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import '../admin/admin.css';
@@ -73,7 +74,8 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // play() is called by onLoadedMetadata on the video element to avoid
+        // the race condition that causes a black/dark camera preview
       }
       setMode('camera');
     } catch {
@@ -117,53 +119,16 @@ function AIFlockCounter({ onCountAccepted }: { onCountAccepted: (count: number) 
     setMode('analysing');
     setResult(null);
 
-    // Strip the "data:image/jpeg;base64," prefix — API needs raw base64
-    const base64Data  = dataUrl.split(',')[1];
+    // Strip the "data:image/jpeg;base64," prefix — backend needs raw base64
+    const base64Image = dataUrl.split(',')[1];
     const mediaType   = (dataUrl.match(/^data:(image\/\w+);base64,/) ?? [])[1] ?? 'image/jpeg';
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model:      'claude-sonnet-4-6',
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type:   'image',
-                  source: { type: 'base64', media_type: mediaType, data: base64Data },
-                },
-                {
-                  type: 'text',
-                  text: `You are an expert poultry farm monitoring AI. Count the number of birds (chickens, broilers, layers, or any poultry) visible in this image.
-
-Respond ONLY with a JSON object (no markdown, no preamble) in exactly this shape:
-{
-  "count": <integer — best estimate of visible bird count>,
-  "confidence": "<high|medium|low>",
-  "notes": "<brief 1-sentence observation about visibility, crowding, or any counting caveats>"
-}
-
-Rules:
-- If the image does not show poultry at all, set count to 0 and explain in notes.
-- If birds are partially obscured or very densely packed, estimate carefully and lower confidence accordingly.
-- Do not include any text outside the JSON object.`,
-                },
-              ],
-            },
-          ],
-        }),
+      const response = await api.post<FlockVisionResult>('/ai/flock-count/', {
+        base64_image: base64Image,
+        media_type:   mediaType,
       });
-
-      const data = await response.json();
-      const raw  = data.content?.map((b: { type: string; text?: string }) => b.type === 'text' ? b.text ?? '' : '').join('') ?? '';
-      const clean = raw.replace(/```json|```/g, '').trim();
-      const parsed: FlockVisionResult = JSON.parse(clean);
-
-      setResult(parsed);
+      setResult(response.data);
       setMode('result');
     } catch {
       setErrMsg('AI analysis failed. Please retake the photo or try again.');
@@ -252,6 +217,7 @@ Rules:
             <video
               ref={videoRef}
               autoPlay playsInline muted
+              onLoadedMetadata={() => { videoRef.current?.play(); }}
               style={{ width: '100%', display: 'block', maxHeight: 260, objectFit: 'cover' }}
             />
             {/* Targeting overlay */}
