@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { trainingService } from '../../lib/services/training';
 import { toArray } from '../../lib/api';
+import type { TrainingModule } from '../../types';
 import '../farmer/farmer.css';
 import './admin.css';
 
@@ -43,7 +44,7 @@ export default function AdminTraining() {
     finally { setSaving(false); }
   };
 
-  const mods = toArray<any>(modules.data);
+  const mods = toArray<TrainingModule>(modules.data);
 
   return (
     <div>

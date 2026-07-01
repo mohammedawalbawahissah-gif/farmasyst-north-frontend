@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Farm } from '../../types';
+import type { Farm, FarmAuditReport, User as UserType } from '../../types';
 import { toArray } from '../../lib/api';
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
@@ -19,9 +19,9 @@ export default function AdminMonitoring() {
   const [assignMsg, setAssignMsg] = useState('');
   const [assignLoading, setAssignLoading] = useState(false);
 
-  const officerList = toArray<any>(officers.data);
+  const officerList = toArray<UserType>(officers.data);
   const farmList    = toArray<Farm>(farms.data);
-  const auditList   = toArray<any>(audits.data);
+  const auditList   = toArray<FarmAuditReport>(audits.data);
 
   // Count audits per officer
   const auditsByOfficer = auditList.reduce<Record<string, number>>((acc, a) => {
@@ -30,7 +30,7 @@ export default function AdminMonitoring() {
   }, {});
 
   // Most recent audit per farm
-  const lastAuditByFarm = auditList.reduce<Record<string, any>>((acc, a) => {
+  const lastAuditByFarm = auditList.reduce<Record<string, FarmAuditReport>>((acc, a) => {
     if (!acc[a.farm] || new Date(a.visit_date) > new Date(acc[a.farm].visit_date)) acc[a.farm] = a;
     return acc;
   }, {});
@@ -104,7 +104,7 @@ export default function AdminMonitoring() {
         </Card>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 'var(--sp-md)', marginBottom: 'var(--sp-xl)' }}>
-          {officerList.map((o: any) => {
+          {officerList.map((o) => {
             const name     = displayName(o) || o.email;
             const initials = name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
             const count    = auditsByOfficer[o.id] ?? 0;
@@ -188,7 +188,7 @@ export default function AdminMonitoring() {
                             style={{ fontSize: 12, padding: '4px 8px' }}
                           >
                             <option value="">— Select officer —</option>
-                            {officerList.map((o: any) => (
+                            {officerList.map((o) => (
                               <option key={o.id} value={o.id}>{displayName(o) || o.email}</option>
                             ))}
                           </select>

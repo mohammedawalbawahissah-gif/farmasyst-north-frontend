@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, Save, Lock, Eye, EyeOff, User, CheckCircle } from 'lucide-react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { authService } from '../../lib/services/auth';
 import { vetService } from '../../lib/services/vet';
 import { inputDealerService } from '../../lib/services/inputDealer';
@@ -62,11 +62,11 @@ export default function ProfilePage() {
 
   // Sync photoPreview from user object after a successful save (photoFile cleared → refreshUser ran)
   useEffect(() => {
-    if (!photoFile && user?.profile_photo) {
-      setPhotoPreview(user.profile_photo);
-    } else if (!photoFile && !user?.profile_photo) {
-      setPhotoPreview(null);
-    }
+    if (photoFile) return;
+    // Defer to a microtask so we don't setState synchronously in the effect body
+    queueMicrotask(() => {
+      setPhotoPreview(user?.profile_photo ?? null);
+    });
   }, [user?.profile_photo, photoFile]);
 
   // Load role-specific profile on mount

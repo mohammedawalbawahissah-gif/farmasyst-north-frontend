@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './lib/auth-context';
+import { AuthProvider } from './lib/auth-context';
+import { useAuth } from './lib/hooks/useAuth';
 import AppLayout from './components/layout/AppLayout';
 
 import Login from './pages/auth/Login';
@@ -66,7 +67,7 @@ import AIAssistant          from './pages/shared/AIAssistant';
 import ProjectApplications  from './pages/investor/ProjectApplications';
 import AdminProjects        from './pages/admin/Projects';
 
-function ProtectedRoutes() {
+function ProtectedRoutes({ allowedRoles }: { allowedRoles?: string[] }) {
   const { user, loading } = useAuth();
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontSize:14, color:'#888' }}>
@@ -74,6 +75,9 @@ function ProtectedRoutes() {
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={`/${user.role}`} replace />;
+  }
   return <AppLayout />;
 }
 
@@ -85,8 +89,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to={`/${user.role}`} replace /> : <Login />} />
 
-      <Route element={<ProtectedRoutes />}>
-        {/* Farmer */}
+      {/* Farmer */}
+      <Route element={<ProtectedRoutes allowedRoles={['farmer']} />}>
         <Route path="/farmer"               element={<FarmerDashboard />} />
         <Route path="/farmer/credit"        element={<CreditApplication />} />
         <Route path="/farmer/farm"          element={<FarmManager />} />
@@ -99,8 +103,10 @@ function AppRoutes() {
         <Route path="/farmer/ai"            element={<AIAssistant />} />
         <Route path="/farmer/notifications" element={<FarmerNotifications />} />
         <Route path="/farmer/profile" element={<ProfilePage />} />
+      </Route>
 
-        {/* Investor */}
+      {/* Investor */}
+      <Route element={<ProtectedRoutes allowedRoles={['investor']} />}>
         <Route path="/investor"                element={<InvestorDashboard />} />
         <Route path="/investor/opportunities"  element={<Opportunities />} />
         <Route path="/investor/projects"       element={<ProjectApplications />} />
@@ -112,8 +118,10 @@ function AppRoutes() {
         <Route path="/investor/ai"             element={<AIAssistant />} />
         <Route path="/investor/notifications"  element={<InvestorNotifications />} />
         <Route path="/investor/profile" element={<ProfilePage />} />
+      </Route>
 
-        {/* Admin */}
+      {/* Admin */}
+      <Route element={<ProtectedRoutes allowedRoles={['admin']} />}>
         <Route path="/admin"                   element={<AdminDashboard />} />
         <Route path="/admin/farms"             element={<AdminFarms />} />
         <Route path="/admin/users"             element={<AdminUsers />} />
@@ -133,16 +141,20 @@ function AppRoutes() {
         <Route path="/admin/ai"                element={<AIAssistant />} />
         <Route path="/admin/settings"          element={<AdminSettings />} />
         <Route path="/admin/profile"           element={<ProfilePage />} />
+      </Route>
 
-        {/* Consumer */}
+      {/* Consumer */}
+      <Route element={<ProtectedRoutes allowedRoles={['consumer']} />}>
         <Route path="/consumer"               element={<ConsumerMarketplace />} />
         <Route path="/consumer/orders"        element={<Orders />} />
         <Route path="/consumer/subscriptions" element={<Subscriptions />} />
         <Route path="/consumer/ai"            element={<AIAssistant />} />
         <Route path="/consumer/notifications" element={<ConsumerNotifications />} />
         <Route path="/consumer/profile" element={<ProfilePage />} />
+      </Route>
 
-        {/* Monitoring Officer */}
+      {/* Monitoring Officer */}
+      <Route element={<ProtectedRoutes allowedRoles={['monitoring_officer']} />}>
         <Route path="/monitoring_officer"                element={<MonitoringDashboard />} />
         <Route path="/monitoring_officer/farms"          element={<MonitoringFarms />} />
         <Route path="/monitoring_officer/report"         element={<SubmitReport />} />
@@ -150,16 +162,20 @@ function AppRoutes() {
         <Route path="/monitoring_officer/ai"             element={<AIAssistant />} />
         <Route path="/monitoring_officer/notifications"  element={<MonitoringNotifications />} />
         <Route path="/monitoring_officer/profile" element={<ProfilePage />} />
+      </Route>
 
-        {/* Vet */}
+      {/* Vet */}
+      <Route element={<ProtectedRoutes allowedRoles={['vet']} />}>
         <Route path="/vet"                element={<VetDashboard />} />
         <Route path="/vet/bookings"       element={<VetBookings />} />
         <Route path="/vet/services"       element={<VetServices />} />
         <Route path="/vet/ai"             element={<AIAssistant />} />
         <Route path="/vet/notifications"  element={<VetNotifications />} />
         <Route path="/vet/profile" element={<ProfilePage />} />
+      </Route>
 
-        {/* Input Dealer */}
+      {/* Input Dealer */}
+      <Route element={<ProtectedRoutes allowedRoles={['input_dealer']} />}>
         <Route path="/input_dealer"                element={<InputDealerDashboard />} />
         <Route path="/input_dealer/listings"       element={<InputDealerListings />} />
         <Route path="/input_dealer/ai"             element={<AIAssistant />} />

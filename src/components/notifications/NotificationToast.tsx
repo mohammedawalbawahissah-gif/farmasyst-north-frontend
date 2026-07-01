@@ -1,5 +1,5 @@
 import { X, Bell } from 'lucide-react';
-import { useNotifications } from '../../lib/notification-context';
+import { useNotifications } from '../../lib/hooks/useNotifications';
 import type { Notification } from '../../types';
 
 const PRIORITY_COLORS: Record<string, string> = {

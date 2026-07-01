@@ -1,4 +1,5 @@
 import { Users, FileCheck, AlertCircle, TrendingUp, BarChart3, UserCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader, StatCard, Card, Button, SectionTitle, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
@@ -7,6 +8,7 @@ import { paymentsService } from '../../lib/services/payments';
 import { notificationsService } from '../../lib/services/notifications';
 import { toArray } from '../../lib/api';
 import { displayName } from '../../types';
+import type { User, CreditApplication, Notification, DisbursementRequest } from '../../types';
 import '../farmer/farmer.css';
 import './admin.css';
 
@@ -16,15 +18,16 @@ const STATUS_BADGE: Record<string, 'success' | 'warning' | 'danger' | 'neutral' 
 };
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const users    = useAsync(() => adminService.listUsers(), []);
   const apps     = useAsync(() => creditService.listApps(), []);
   const notifs   = useAsync(() => notificationsService.list(), []);
   const disbReqs = useAsync(() => paymentsService.listDisbursementRequests(), []);
 
-  const allUsers  = toArray<any>(users.data);
-  const allApps   = toArray<any>(apps.data);
-  const allNotifs = toArray<any>(notifs.data);
-  const allDisbReqs = toArray<any>(disbReqs.data);
+  const allUsers  = toArray<User>(users.data);
+  const allApps   = toArray<CreditApplication>(apps.data);
+  const allNotifs = toArray<Notification>(notifs.data);
+  const allDisbReqs = toArray<DisbursementRequest>(disbReqs.data);
 
   const pending         = allApps.filter(a => ['submitted', 'under_review', 'scored'].includes(a.status));
   const pendingDisbReqs = allDisbReqs.filter(r => r.status === 'pending');
@@ -60,7 +63,7 @@ export default function AdminDashboard() {
             💸 <strong>{pendingDisbReqs.length} disbursement request{pendingDisbReqs.length > 1 ? 's' : ''}</strong> awaiting your review —
             totalling <strong>GHS {pendingDisbReqs.reduce((s,r) => s + parseFloat(r.amount), 0).toLocaleString()}</strong>
           </div>
-          <Button size="sm" onClick={() => window.location.href = '/admin/disbursements'}>
+          <Button size="sm" onClick={() => navigate('/admin/disbursements')}>
             Review Requests →
           </Button>
         </div>
@@ -95,7 +98,7 @@ export default function AdminDashboard() {
                       <td>{app.amount_requested ? `GHS ${parseFloat(app.amount_requested).toLocaleString()}` : 'Free'}</td>
                       <td><Badge variant={STATUS_BADGE[app.status] ?? 'neutral'}>{app.status.replace(/_/g, ' ')}</Badge></td>
                       <td className="data-table__muted">{app.submitted_at ? new Date(app.submitted_at).toLocaleDateString('en-GH') : '—'}</td>
-                      <td><Button size="sm" onClick={() => window.location.href = '/admin/credit'}>Review</Button></td>
+                      <td><Button size="sm" onClick={() => navigate('/admin/credit')}>Review</Button></td>
                     </tr>
                   ))}
                 </tbody>

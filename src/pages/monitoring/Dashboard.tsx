@@ -2,10 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
-import type { Farm, FarmAuditReport } from '../../types';
+import type { Farm, FarmAuditReport, FarmerProfile } from '../../types';
 import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { ChevronRight } from 'lucide-react';
 import '../admin/admin.css';
 
@@ -22,7 +22,7 @@ export default function MODashboard() {
 
   const allFarms   = toArray<Farm>(farms.data);
   const allAudits  = toArray<FarmAuditReport>(audits.data);
-  const allProfiles = toArray<any>(profiles.data);
+  const allProfiles = toArray<FarmerProfile>(profiles.data);
 
   // Officer's own reports
   const myAudits = allAudits.filter(a => a.auditor === user?.id);
@@ -37,7 +37,7 @@ export default function MODashboard() {
   // Concerns that need follow-up
   const needsAttention = myAudits.filter(a => a.outcome === 'concerns' || a.outcome === 'unsatisfactory');
 
-  const pendingProfiles = allProfiles.filter((p: any) =>
+  const pendingProfiles = allProfiles.filter((p) =>
     p.verification_status === 'pending' || !p.verification_status
   ).length;
 

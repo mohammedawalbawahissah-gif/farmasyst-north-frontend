@@ -7,7 +7,7 @@ import {
   MapPin, ShieldCheck, Stethoscope, Calendar, Pill, AlertTriangle,
   Menu, X, UserCircle, FolderKanban, Sparkles,
 } from 'lucide-react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import FarmAsystLogo, { FarmAsystLogoFull } from '../ui/FarmAsystLogo';
 import NotificationBell from '../notifications/NotificationBell';
 import type { UserRole } from '../../types';

@@ -5,7 +5,7 @@ import { adminService } from '../../lib/services/admin';
 import { paymentsService } from '../../lib/services/payments';
 import { farmsService } from '../../lib/services/farms';
 import { toArray } from '../../lib/api';
-import type { Farm } from '../../types';
+import type { Farm, CreditApplication, User, RepaymentSchedule } from '../../types';
 import { BarChart3 } from 'lucide-react';
 import './admin.css';
 
@@ -15,9 +15,9 @@ export default function AdminAnalytics() {
   const schedules = useAsync(() => paymentsService.listSchedules(), []);
   const farms     = useAsync(() => farmsService.list(), []);
 
-  const allApps  = toArray<any>(apps.data);
-  const allUsers = toArray<any>(users.data);
-  const allSched = toArray<any>(schedules.data);
+  const allApps  = toArray<CreditApplication>(apps.data);
+  const allUsers = toArray<User>(users.data);
+  const allSched = toArray<RepaymentSchedule>(schedules.data);
   const allFarms = toArray<Farm>(farms.data);
 
   const disbursed     = allSched.filter(s=>s.status==='paid').reduce((s,r)=>s+parseFloat(r.amount_paid),0);

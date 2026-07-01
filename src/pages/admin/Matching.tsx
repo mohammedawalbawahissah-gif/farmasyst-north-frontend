@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Farm } from '../../types';
+import type { Farm, CreditApplication, CreditAgreement, InvestorProfile } from '../../types';
 import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
@@ -23,9 +23,9 @@ export default function AdminMatching() {
   const [msg,          setMsg]        = useState('');
   const [msgType,      setMsgType]    = useState<'success'|'error'>('success');
 
-  const allApps       = toArray<any>(apps.data);
-  const allAgreements = toArray<any>(agreements.data);
-  const allInvestors  = toArray<any>(investors.data);
+  const allApps       = toArray<CreditApplication>(apps.data);
+  const allAgreements = toArray<CreditAgreement>(agreements.data);
+  const allInvestors  = toArray<InvestorProfile>(investors.data);
   const farmMap       = Object.fromEntries(toArray<Farm>(farms.data).map(f => [userId(f.owner), f]));
 
   // Real flow: approved (ready to assign) → agreement pending_signature → active → disbursed
@@ -56,7 +56,7 @@ export default function AdminMatching() {
     const isExpanded = matching === app.id;
     // Check if this app already has an agreement
     const ag = allAgreements.find(a =>
-      (typeof a.application === 'string' ? a.application : (a.application as any)?.id) === app.id
+      (typeof a.application === 'string' ? a.application : (a.application as { id: string })?.id) === app.id
     );
 
     const renderAction = () => {
@@ -109,9 +109,10 @@ export default function AdminMatching() {
               ? <option disabled>Loading investors…</option>
               : allInvestors.length === 0
               ? <option disabled>No investors found</option>
-              : allInvestors.map((inv: any) => {
+              : allInvestors.map((inv) => {
+                  const flat = inv as unknown as { full_name?: string; email?: string };
                   const id   = inv.user ? userId(inv.user) : inv.id;
-                  const name = inv.user ? displayName(inv.user) : (inv.full_name || inv.email);
+                  const name = inv.user ? displayName(inv.user) : (flat.full_name || flat.email);
                   const meta = [inv.organisation, inv.investor_type].filter(Boolean).join(' · ');
                   return (
                     <option key={id} value={id}>

@@ -1,28 +1,11 @@
 import {
-  createContext, useContext, useEffect, useRef, useState,
+  useEffect, useRef, useState,
   useCallback, type ReactNode,
 } from 'react';
-import { useAuth } from './auth-context';
+import { useAuth } from './hooks/useAuth';
 import { buildSSEUrl, notificationsService } from './services/notifications';
 import type { Notification } from '../types';
-
-interface NotificationContextType {
-  unread:        number;
-  toasts:        Notification[];
-  dismissToast:  (id: string) => void;
-  markRead:      (id: string) => void;
-  markAllRead:   () => void;
-  refreshUnread: () => void;
-}
-
-const NotificationContext = createContext<NotificationContextType>({
-  unread:        0,
-  toasts:        [],
-  dismissToast:  () => {},
-  markRead:      () => {},
-  markAllRead:   () => {},
-  refreshUnread: () => {},
-});
+import { NotificationContext } from './notification-context-def';
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user }        = useAuth();
@@ -72,16 +55,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       eventSourceRef.current?.close();
       eventSourceRef.current = null;
       if (pollRef.current) clearInterval(pollRef.current);
-      setUnread(0);
-      setToasts([]);
+      // Defer so we don't setState synchronously within the effect body
+      queueMicrotask(() => {
+        setUnread(0);
+        setToasts([]);
+      });
       return;
     }
 
-    // Initial unread count
-    refreshUnread();
+    // Initial unread count — deferred for the same reason as above
+    queueMicrotask(() => { refreshUnread(); });
 
     // Get access token from localStorage (matches how api.ts stores it)
-    const accessToken = localStorage.getItem('access_token') ?? '';
+    const accessToken = localStorage.getItem('fa_access') ?? '';
     if (!accessToken) {
       // Fall back to polling if no token available for SSE
       pollRef.current = setInterval(refreshUnread, 30_000);
@@ -129,5 +115,3 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     </NotificationContext.Provider>
   );
 }
-
-export const useNotifications = () => useContext(NotificationContext);

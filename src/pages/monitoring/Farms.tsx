@@ -21,19 +21,19 @@ export default function MOFarms() {
   const farms     = useAsync(() => farmsService.list(), []);
   const audits    = useAsync(() => farmsService.listAudits(), []);
   const [search,   setSearch]   = useState('');
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<Farm | null>(null);
 
   const allFarms  = toArray<Farm>(farms.data);
   const allAudits = toArray<FarmAuditReport>(audits.data);
 
   // Latest audit per farm
-  const latestByFarm: Record<string, any> = {};
+  const latestByFarm: Record<string, FarmAuditReport> = {};
   allAudits.forEach(a => {
     if (!latestByFarm[a.farm] || new Date(a.visit_date) > new Date(latestByFarm[a.farm].visit_date))
       latestByFarm[a.farm] = a;
   });
   // All audits per farm (for history panel)
-  const historyByFarm: Record<string, any[]> = {};
+  const historyByFarm: Record<string, FarmAuditReport[]> = {};
   allAudits.forEach(a => {
     if (!historyByFarm[a.farm]) historyByFarm[a.farm] = [];
     historyByFarm[a.farm].push(a);

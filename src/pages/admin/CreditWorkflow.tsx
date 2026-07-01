@@ -4,6 +4,7 @@ import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { toArray } from '../../lib/api';
 import { displayName } from '../../types';
+import type { CreditApplication, CreditAgreement } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { FileCheck, Clock } from 'lucide-react';
 import '../farmer/farmer.css';
@@ -30,11 +31,11 @@ export default function AdminCreditWorkflow() {
   const [msg,       setMsg]     = useState('');
   const [msgType,   setMsgType] = useState<'success'|'error'>('success');
 
-  const allApps      = toArray<any>(apps.data);
-  const allAgreements = toArray<any>(agreements.data);
+  const allApps      = toArray<CreditApplication>(apps.data);
+  const allAgreements = toArray<CreditAgreement>(agreements.data);
   // Map application id → agreement so we can check whether a contract already exists
   const agreementByApp = Object.fromEntries(
-    allAgreements.map(ag => [typeof ag.application === 'string' ? ag.application : (ag.application as any)?.id, ag])
+    allAgreements.map(ag => [typeof ag.application === 'string' ? ag.application : (ag.application as { id: string })?.id, ag])
   );
   const filtered     = allApps.filter(a => !filter || a.status === filter);
   const statusCounts = allApps.reduce((acc,a) => { acc[a.status]=(acc[a.status]||0)+1; return acc; }, {} as Record<string,number>);

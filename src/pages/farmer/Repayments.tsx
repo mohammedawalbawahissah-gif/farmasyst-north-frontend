@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toArray } from '../../lib/api';
 import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
-import { paymentsService } from '../../lib/services/payments';
+import { paymentsService, type RepayPayload } from '../../lib/services/payments';
 import { creditService } from '../../lib/services/credit';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { RepaymentSchedule, CreditAgreement, DisbursementRequest } from '../../types';
@@ -63,7 +63,7 @@ export default function Repayments() {
   const toggleAg = (id: string) =>
     setExpandedAgs(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
 
@@ -90,7 +90,7 @@ export default function Repayments() {
     if (!payingId) return;
     setLoading(true); setError(''); setSuccess('');
     try {
-      const payload: any = { schedule_id: payingId, method, phone_number: phone };
+      const payload: RepayPayload = { schedule_id: payingId, method, phone_number: phone };
       if (modalMode === 'partial') {
         if (!customAmount || parseFloat(customAmount) <= 0) {
           setError('Please enter a valid amount.'); setLoading(false); return;
@@ -98,8 +98,8 @@ export default function Repayments() {
         payload.amount = parseFloat(customAmount);
       }
       const res = await paymentsService.initiateRepayment(payload);
-      if (method === 'paystack' && (res as any).authorization_url) {
-        window.open((res as any).authorization_url, '_blank');
+      if (method === 'paystack' && res.authorization_url) {
+        window.open(res.authorization_url, '_blank');
       } else {
         setSuccess('Payment initiated via MoMo. You will receive a prompt on your phone.');
       }

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, Upload, X, RefreshCw, AlertTriangle, Video, Image as ImageIcon, CameraOff, Maximize2 } from 'lucide-react';
 import { SectionTitle, Card, Button } from '../../components/ui';
 import { aiService } from '../../lib/services/ai';
+import { getApiErrorMessage } from '../../lib/errors';
 import type { DiseaseDetectionResult } from '../../lib/services/ai';
 import type { Farm } from '../../types';
 
@@ -84,13 +85,14 @@ export default function DiseaseDetection({ farmList, role }: Props) {
       // Set active AFTER storing the stream — the useEffect above will
       // wire it to the <video> element once it appears in the DOM.
       setCameraActive(true);
-    } catch (err: any) {
-      if (err.name === 'NotAllowedError') {
+    } catch (err: unknown) {
+      const e = err as DOMException;
+      if (e.name === 'NotAllowedError') {
         setCameraError('Camera access denied. Please allow camera access in your browser settings.');
-      } else if (err.name === 'NotFoundError') {
+      } else if (e.name === 'NotFoundError') {
         setCameraError('No camera found on this device.');
       } else {
-        setCameraError('Could not start camera: ' + (err.message ?? 'Unknown error'));
+        setCameraError('Could not start camera: ' + (e.message ?? 'Unknown error'));
       }
     }
   };
@@ -180,8 +182,8 @@ export default function DiseaseDetection({ farmList, role }: Props) {
         capture_mode: mediaMode as 'camera' | 'upload',
       } : undefined);
       setResult(res);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? 'Disease analysis failed. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Disease analysis failed. Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -459,7 +461,7 @@ export default function DiseaseDetection({ farmList, role }: Props) {
                   e.preventDefault();
                   const file = e.dataTransfer.files[0];
                   if (file) {
-                    const syntheticEvent = { target: { files: e.dataTransfer.files } } as any;
+                    const syntheticEvent = { target: { files: e.dataTransfer.files } } as unknown as React.ChangeEvent<HTMLInputElement>;
                     handleFileChange(syntheticEvent);
                   }
                 }}

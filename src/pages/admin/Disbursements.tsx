@@ -4,6 +4,8 @@ import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { paymentsService } from '../../lib/services/payments';
 import './admin.css';
+import { getApiErrorMessage } from '../../lib/errors';
+import type { DisbursementRequest } from '../../types';
 
 const STATUS_BADGE: Record<string, 'warning'|'success'|'danger'|'neutral'> = {
   pending: 'warning', approved: 'success', rejected: 'danger',
@@ -26,7 +28,7 @@ export default function AdminDisbursements() {
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
-  const all      = toArray<any>(requests.data);
+  const all      = toArray<DisbursementRequest>(requests.data);
   const pending  = all.filter(r => r.status === 'pending');
   const approved = all.filter(r => r.status === 'approved');
   const rejected = all.filter(r => r.status === 'rejected');
@@ -58,8 +60,8 @@ export default function AdminDisbursements() {
       setSuccess('Disbursement approved. Funds are being processed and the repayment schedule has been generated.');
       setActionId(null); setActionType(null);
       requests.refetch();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Approval failed. Please try again.');
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, 'Approval failed. Please try again.'));
     }
     finally { setApproving(null); }
   };
@@ -75,8 +77,8 @@ export default function AdminDisbursements() {
       setSuccess('Disbursement request rejected. The investor has been notified.');
       setActionId(null); setActionType(null);
       requests.refetch();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Rejection failed. Please try again.');
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, 'Rejection failed. Please try again.'));
     }
     finally { setRejecting(null); }
   };

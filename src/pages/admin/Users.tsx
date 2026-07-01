@@ -3,9 +3,14 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
+import type { User } from '../../types';
 import { Search, Edit2, X, Check } from 'lucide-react';
 import '../farmer/farmer.css';
 import './admin.css';
+
+interface AdminUserRow extends User {
+  credit_score?: string | number;
+}
 
 const ROLE_BADGE: Record<string,'success'|'info'|'warning'|'neutral'> = {
   farmer:'success', investor:'info', admin:'warning', consumer:'neutral',
@@ -19,7 +24,7 @@ export default function AdminUsers() {
   const [acting, setActing]   = useState<string|null>(null);
   const [msg, setMsg]         = useState('');
 
-  const all = toArray<any>(users.data).filter(u => {
+  const all = toArray<AdminUserRow>(users.data).filter(u => {
     const s = search.toLowerCase();
     const matchSearch = !s || u.full_name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s);
     const matchRole   = !roleFilter || u.role === roleFilter;
@@ -51,10 +56,10 @@ export default function AdminUsers() {
     finally { setActing(null); setConfirmDelete(null); }
   };
 
-  const openScoreEdit = (u: any) => {
+  const openScoreEdit = (u: AdminUserRow) => {
     setEditScoreId(u.id);
     // Try to get existing credit score from farmer_profile data if present, default 0
-    setScoreInput(u.credit_score ?? '0');
+    setScoreInput(String(u.credit_score ?? '0'));
   };
 
   const saveScore = async (id: string) => {
@@ -63,7 +68,7 @@ export default function AdminUsers() {
     setScoreSaving(true); setMsg('');
     try {
       const res = await adminService.updateCreditScore(id, val);
-      setMsg((res as any).detail ?? 'Credit score updated.');
+      setMsg((res as { detail?: string })?.detail ?? 'Credit score updated.');
       setEditScoreId(null);
       users.refetch();
     } catch { setMsg('Failed to update credit score.'); }
@@ -77,7 +82,7 @@ export default function AdminUsers() {
 
       {/* ── Delete confirmation modal ── */}
       {confirmDelete && (() => {
-        const u = toArray<any>(users.data).find(x => x.id === confirmDelete);
+        const u = toArray<AdminUserRow>(users.data).find(x => x.id === confirmDelete);
         return (
           <div style={{
             position:'fixed', inset:0, background:'rgba(0,0,0,0.45)',

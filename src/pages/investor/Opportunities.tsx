@@ -6,7 +6,7 @@ import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
 import { displayName, userId } from '../../types';
 import { CheckCircle, XCircle, Users, TrendingUp, Clock } from 'lucide-react';
-import type { CreditApplication, CreditAgreement } from '../../types';
+import type { CreditApplication, CreditAgreement, FarmerProfile } from '../../types';
 import '../farmer/farmer.css';
 import './investor.css';
 
@@ -21,11 +21,11 @@ export default function Opportunities() {
 
   const allAgreements = toArray<CreditAgreement>(agreements.data);
   const agreementByApp = Object.fromEntries(
-    allAgreements.map(ag => [typeof ag.application === 'string' ? ag.application : (ag.application as any)?.id, ag])
+    allAgreements.map(ag => [typeof ag.application === 'string' ? ag.application : (ag.application as { id: string })?.id, ag])
   );
   // Show matched apps AND approved apps that already have an agreement (accepted)
   const matched   = toArray<CreditApplication>(apps.data).filter(a => ['matched', 'approved'].includes(a.status));
-  const profMap   = Object.fromEntries(toArray<any>(profiles.data).map(p => [userId(p.user), p]));
+  const profMap   = Object.fromEntries(toArray<FarmerProfile>(profiles.data).map(p => [userId(p.user), p]));
 
   const handle = async (action: 'accept' | 'decline', appId: string) => {
     setActing(appId); setMsg('');

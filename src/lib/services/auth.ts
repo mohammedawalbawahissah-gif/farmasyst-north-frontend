@@ -1,6 +1,6 @@
 import api from '../api';
 import { tokens } from '../api';
-import type { User, AuthTokens } from '../../types';
+import type { User, AuthTokens, FarmerProfile } from '../../types';
 
 export interface LoginPayload { email: string; password: string; }
 export interface RegisterPayload {
@@ -69,7 +69,7 @@ export const authService = {
     return user;
   },
 
-  async getFarmerProfile(): Promise<Record<string, unknown>> {
+  async getFarmerProfile(): Promise<FarmerProfile> {
     const { data } = await api.get('/profiles/farmer/');
     return data;
   },

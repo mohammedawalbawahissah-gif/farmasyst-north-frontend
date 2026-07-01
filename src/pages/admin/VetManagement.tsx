@@ -51,8 +51,8 @@ export default function AdminVetManagement() {
   const refetchAll = () => { pending.refetch(); all.refetch(); };
 
   const flash = (msg: string, isErr = false) => {
-    isErr ? setError(msg) : setSuccess(msg);
-    setTimeout(() => isErr ? setError('') : setSuccess(''), 4000);
+    if (isErr) setError(msg); else setSuccess(msg);
+    setTimeout(() => { if (isErr) setError(''); else setSuccess(''); }, 4000);
   };
 
   const handleApprove = async (id: string) => {

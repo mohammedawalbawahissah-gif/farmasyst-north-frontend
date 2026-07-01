@@ -4,7 +4,7 @@ import { PageHeader, Card, Button, Badge } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
-import type { Farm } from '../../types';
+import type { Farm, FarmerProfile } from '../../types';
 import { displayName, userId } from '../../types';
 import { Search, X, MapPin } from 'lucide-react';
 import './investor.css';
@@ -17,7 +17,7 @@ export default function BrowseFarmers() {
   const [flockFilter,  setFlock]   = useState('');
   const [regionFilter, setRegion]  = useState('');
   const [query,        setQuery]   = useState<Record<string, string>>({});
-  const [selected,     setSelected] = useState<any>(null);
+  const [selected,     setSelected] = useState<{ p: FarmerProfile; farm?: Farm; name: string; initials: string } | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -32,12 +32,12 @@ export default function BrowseFarmers() {
   const profiles = useAsync(() => adminService.listFarmerProfiles(query), [JSON.stringify(query)]);
   const farms    = useAsync(() => farmsService.list(), []);
 
-  const allProfiles = toArray<any>(profiles.data);
+  const allProfiles = toArray<FarmerProfile>(profiles.data);
   const farmMap     = Object.fromEntries(
-    toArray<Farm>(farms.data).map(f => [userId(f.owner as any), f])
+    toArray<Farm>(farms.data).map(f => [userId(f.owner), f])
   );
 
-  const filtered = allProfiles.filter((p: any) => {
+  const filtered = allProfiles.filter((p) => {
     if (!flockFilter) return true;
     const farm = farmMap[userId(p.user)];
     return farm?.flock_type === flockFilter;
@@ -84,7 +84,7 @@ export default function BrowseFarmers() {
         </Card>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 'var(--sp-md)' }}>
-          {filtered.map((p: any) => {
+          {filtered.map((p) => {
             const farm     = farmMap[userId(p.user)];
             const name     = displayName(p.user) || `Farmer ${p.id}`;
             const initials = name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();

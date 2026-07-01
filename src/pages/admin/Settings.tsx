@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PageHeader, Card, Button, SectionTitle } from '../../components/ui';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { authService } from '../../lib/services/auth';
 import './admin.css';
 

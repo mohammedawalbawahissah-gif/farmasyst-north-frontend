@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Farm } from '../../types';
+import type { Farm, User } from '../../types';
 import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
@@ -96,7 +96,7 @@ export default function AdminFarms() {
   const [search,    setSearch]    = useState('');
 
   const allFarms   = toArray<Farm>(farms.data);
-  const allFarmers = toArray<any>(farmers.data);
+  const allFarmers = toArray<User>(farmers.data);
 
   const filtered = allFarms.filter(f => {
     const s = search.toLowerCase();

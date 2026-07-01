@@ -1,6 +1,18 @@
 import api from '../api';
 import type { Produce, Order, Paginated } from '../../types';
 
+export interface PaymentInitiationResult {
+  // Bank transfer
+  bank_name?: string;
+  account_number?: string;
+  account_name?: string;
+  reference?: string;
+  // MoMo
+  message?: string;
+  // Hubtel MoMo / card
+  checkout_url?: string;
+}
+
 export const marketplaceService = {
   listProduce: (params?: Record<string, string>) =>
     api.get<Paginated<Produce>>('/marketplace/produce/', { params }).then(r => r.data),
@@ -36,7 +48,7 @@ export const marketplaceService = {
    * - Bank transfer: returns bank account details
    * - Cash on delivery: no-op
    */
-  initiatePayment: (orderId: string, payload: { phone_number?: string }) =>
+  initiatePayment: (orderId: string, payload: { phone_number?: string }): Promise<PaymentInitiationResult> =>
     api.post(`/marketplace/orders/${orderId}/initiate_payment/`, payload).then(r => r.data),
 
   /**

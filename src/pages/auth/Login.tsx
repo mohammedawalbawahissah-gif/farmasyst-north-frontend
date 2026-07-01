@@ -1,7 +1,8 @@
 import { useState, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { authService } from '../../lib/services/auth';
+import { getApiErrorMessage } from '../../lib/errors';
 import FarmAsystLogo from '../../components/ui/FarmAsystLogo';
 import OTPVerification from './OTPVerification';
 import './Login.css';
@@ -71,7 +72,7 @@ export default function Login() {
       const { user: me } = await login({ email, password });
       navigate(`/${me.role}`);
     } catch (err: unknown) {
-      const detail = (err as any)?.response?.data?.detail ?? '';
+      const detail = getApiErrorMessage(err, '');
       const isPending = detail.toLowerCase().includes('pending') || detail.toLowerCase().includes('suspended');
       setLoginError(isPending ? '__PENDING__' : (detail || 'Invalid email or password.'));
     } finally {

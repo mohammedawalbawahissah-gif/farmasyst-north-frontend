@@ -4,7 +4,7 @@ import { toArray } from '../../lib/api';
 import { PageHeader, Card, StatCard, SectionTitle } from '../../components/ui';
 import { Package, ShoppingBag, Store, TrendingUp } from 'lucide-react';
 import type { FarmInput } from '../../types';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import '../farmer/farmer.css';
 
 export default function InputDealerDashboard() {

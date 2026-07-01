@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Users, TrendingUp, FileCheck, BarChart3, X } from 'lucide-react';
 import { toArray } from '../../lib/api';
 import { PageHeader, StatCard, Card, Button, SectionTitle, Badge } from '../../components/ui';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
-import type { CreditAgreement, Farm } from '../../types';
+import type { CreditAgreement, Farm, FarmerProfile } from '../../types';
 import { farmsService } from '../../lib/services/farms';
 import { adminService } from '../../lib/services/admin';
 import { displayName, userId } from '../../types';
@@ -19,17 +19,17 @@ export default function InvestorDashboard() {
   const agreements = useAsync(() => creditService.listAgreements(), []);
   const farms      = useAsync(() => farmsService.list(), []);
   const profiles   = useAsync(() => adminService.listFarmerProfiles(), []);
-  const [selectedFarm, setSelectedFarm] = useState<any>(null);
+  const [selectedFarm, setSelectedFarm] = useState<{ farm: Farm; profile?: FarmerProfile } | null>(null);
 
   const ags           = toArray<CreditAgreement>(agreements.data);
-  const allProfiles   = toArray<any>(profiles.data);
+  const allProfiles   = toArray<FarmerProfile>(profiles.data);
   const active        = ags.filter(a => a.status === 'active');
   const totalAmt      = ags.reduce((s, a) => s + parseFloat(a.amount), 0);
   const uniqueFarmers = new Set(ags.map(a => a.farmer)).size;
 
   // Build map: ownerId → farmerProfile
   const profileMap = Object.fromEntries(
-    allProfiles.map((p: any) => [userId(p.user), p])
+    allProfiles.map((p) => [userId(p.user), p])
   );
 
   return (
@@ -68,7 +68,7 @@ export default function InvestorDashboard() {
                       <span className="farmer-match-card__meta">{f.district}, {f.region} · {f.flock_size.toLocaleString()} birds · {f.flock_type}</span>
                     </div>
                     <div className="farmer-match-card__ask"><strong>{f.flock_type}</strong><span>flock</span></div>
-                    <Button size="sm" variant="secondary" onClick={() => setSelectedFarm({ farm: f, profile: profileMap[userId(f.owner as any)] })}>View Profile</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setSelectedFarm({ farm: f, profile: profileMap[userId(f.owner)] })}>View Profile</Button>
                   </Card>
                 ))}
               </div>

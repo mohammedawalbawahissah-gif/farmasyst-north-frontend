@@ -397,16 +397,14 @@ export default function SubmitReport() {
   const farms          = useAsync(() => farmsService.list(), []);
   const audits         = useAsync(() => farmsService.listAudits(), []);
 
-  const [form,    setForm]    = useState<ReportForm>(EMPTY);
+  // Pre-select farm if navigated from "Audit" button (?farm=<id>)
+  const [form,    setForm]    = useState<ReportForm>(() => {
+    const farmId = searchParams.get('farm');
+    return farmId ? { ...EMPTY, farm: farmId } : EMPTY;
+  });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
-
-  // Pre-select farm if navigated from "Audit" button
-  useEffect(() => {
-    const farmId = searchParams.get('farm');
-    if (farmId) setForm(f => ({ ...f, farm: farmId }));
-  }, [searchParams]);
 
   const allFarms  = toArray<Farm>(farms.data);
   const allAudits = toArray<FarmAuditReport>(audits.data).sort(

@@ -22,6 +22,16 @@ const isPoultryType    = (t: string) => ['broilers','layers','guinea_fowl','turk
 const isHatcheryType   = (t: string) => ['day_old_chicks','hatchery','poultry_and_hatchery'].includes(t);
 const isProcessingType = (t: string) => t === 'meat_processing';
 
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div style={{ borderTop: '1px solid var(--col-border)', paddingTop: 'var(--sp-md)', marginTop: 'var(--sp-sm)', marginBottom: 'var(--sp-sm)' }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--col-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+        {label}
+      </p>
+    </div>
+  );
+}
+
 export default function FarmManager() {
   const farms = useAsync(() => farmsService.list(), []);
   const [selectedFarm, setSelectedFarm] = useState('');
@@ -158,7 +168,7 @@ export default function FarmManager() {
         fd.append('media_captured_at', new Date().toISOString());
         await farmsService.createLogFormData(farmId, fd);
       } else {
-        await farmsService.createLog(farmId, payload as any);
+        await farmsService.createLog(farmId, payload);
       }
 
       setSuccess('Activity logged successfully!');
@@ -176,14 +186,6 @@ export default function FarmManager() {
       setSaving(false);
     }
   };
-
-  const SectionDivider = ({ label }: { label: string }) => (
-    <div style={{ borderTop: '1px solid var(--col-border)', paddingTop: 'var(--sp-md)', marginTop: 'var(--sp-sm)', marginBottom: 'var(--sp-sm)' }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--col-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-        {label}
-      </p>
-    </div>
-  );
 
   return (
     <div>
@@ -461,11 +463,11 @@ export default function FarmManager() {
                     {toArray<FarmActivityLog>(logs.data).slice(0, 14).map(log => (
                       <tr key={log.id}>
                         <td className="data-table__mono">{new Date(log.date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</td>
-                        <td>{(log as any).birds_received ?? 0}</td>
-                        <td>{(log as any).birds_processed ?? 0}</td>
-                        <td>{(log as any).carcass_weight_kg ?? '—'}</td>
-                        <td>{(log as any).units_packaged ?? 0}</td>
-                        <td>{(log as any).cold_storage_units ?? 0}</td>
+                        <td>{log.birds_received ?? 0}</td>
+                        <td>{log.birds_processed ?? 0}</td>
+                        <td>{log.carcass_weight_kg ?? '—'}</td>
+                        <td>{log.units_packaged ?? 0}</td>
+                        <td>{log.cold_storage_units ?? 0}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -486,11 +488,11 @@ export default function FarmManager() {
                     {toArray<FarmActivityLog>(logs.data).slice(0, 14).map(log => (
                       <tr key={log.id}>
                         <td className="data-table__mono">{new Date(log.date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</td>
-                        <td>{(log as any).eggs_in_incubation ?? 0}</td>
-                        <td>{(log as any).eggs_set_today ?? 0}</td>
-                        <td><strong>{(log as any).chicks_hatched ?? 0}</strong></td>
-                        <td style={{ color: (log as any).hatch_rejects > 0 ? 'var(--col-danger)' : 'inherit' }}>{(log as any).hatch_rejects ?? 0}</td>
-                        <td>{(log as any).chicks_sold ?? 0}</td>
+                        <td>{log.eggs_in_incubation ?? 0}</td>
+                        <td>{log.eggs_set_today ?? 0}</td>
+                        <td><strong>{log.chicks_hatched ?? 0}</strong></td>
+                        <td style={{ color: (log.hatch_rejects ?? 0) > 0 ? 'var(--col-danger)' : 'inherit' }}>{log.hatch_rejects ?? 0}</td>
+                        <td>{log.chicks_sold ?? 0}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -541,7 +543,7 @@ export default function FarmManager() {
                         </td>
                         <td>{log.feed_kg ?? '—'}</td>
                         {showLayers && <td>{log.eggs_collected}</td>}
-                        {showHatcherySection && <td>{(log as any).chicks_hatched ?? 0}</td>}
+                        {showHatcherySection && <td>{log.chicks_hatched ?? 0}</td>}
                       </tr>
                     ))}
                   </tbody>

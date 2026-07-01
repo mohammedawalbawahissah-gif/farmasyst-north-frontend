@@ -318,9 +318,9 @@ export default function FarmerMarketplace() {
                       </div>
                     )}
                   </td>
-                  <td><strong>{p.name}</strong>{(p as {egg_size?:string}).egg_size&&<span style={{fontSize:11,color:'var(--col-muted)',display:'block'}}>{(p as {egg_size?:string}).egg_size} eggs</span>}</td>
+                  <td><strong>{p.name}</strong>{p.egg_size && <span style={{fontSize:11,color:'var(--col-muted)',display:'block'}}>{p.egg_size} eggs</span>}</td>
                   <td style={{textTransform:'capitalize'}}>{p.produce_type.replace('_',' ')}</td>
-                  <td>{(p as any).quantity_available ?? (p as any).quantity} {p.unit}</td>
+                  <td>{p.quantity_available ?? p.quantity} {p.unit}</td>
                   <td>GHS {parseFloat(p.price).toLocaleString()}</td>
                   <td style={{fontSize:12}}>
                     {(p as {contact_phone?:string}).contact_phone

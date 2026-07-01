@@ -8,6 +8,7 @@ import { toArray } from '../../lib/api';
 import { Stethoscope, Calendar, MapPin } from 'lucide-react';
 import type { VetService, VetBooking } from '../../types';
 import './farmer.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 const SERVICE_TYPE_LABEL: Record<string, string> = {
   vaccination: '💉 Vaccination', diagnosis: '🔬 Diagnosis', treatment: '💊 Treatment',
@@ -52,8 +53,8 @@ export default function FarmerVetServices() {
       });
       setSuccess('Booking request sent! The vet will confirm shortly.');
       resetBook(); bookings.refetch();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Booking failed. Please try again.');
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, 'Booking failed. Please try again.'));
     } finally { setSaving(false); }
   };
 

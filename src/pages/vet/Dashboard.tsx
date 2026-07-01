@@ -3,7 +3,7 @@ import { vetService } from '../../lib/services/vet';
 import { toArray } from '../../lib/api';
 import { PageHeader, Card, Badge, StatCard, SectionTitle } from '../../components/ui';
 import { Stethoscope, Calendar, CheckCircle, Clock } from 'lucide-react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import type { VetBooking, VetService } from '../../types';
 import '../farmer/farmer.css';
 

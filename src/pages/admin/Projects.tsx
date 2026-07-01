@@ -6,6 +6,7 @@ import { toArray } from '../../lib/api';
 import { ChevronDown, ChevronUp, Plus, Trash2, UserPlus, Send, X, Pencil } from 'lucide-react';
 import '../farmer/farmer.css';
 import './admin.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
   draft: 'neutral', submitted: 'info', under_review: 'warning',
@@ -120,8 +121,8 @@ export default function AdminProjects() {
       await projectService.submit(proj.id);
       showMsg(`"${proj.project_name}" submitted for review.`);
       projects.refetch();
-    } catch (err: any) {
-      showMsg(err?.response?.data?.detail ?? 'Submit failed.', 'error');
+    } catch (err: unknown) {
+      showMsg(getApiErrorMessage(err, 'Submit failed.'), 'error');
     } finally {
       setBusy(null);
     }
@@ -254,8 +255,8 @@ export default function AdminProjects() {
       setView('list');
       projects.refetch();
 
-    } catch (err: any) {
-      setCreateError(err?.response?.data?.detail ?? 'Failed to save project. Please try again.');
+    } catch (err: unknown) {
+      setCreateError(getApiErrorMessage(err, 'Failed to save project. Please try again.'));
     } finally {
       setCreateBusy(false);
     }

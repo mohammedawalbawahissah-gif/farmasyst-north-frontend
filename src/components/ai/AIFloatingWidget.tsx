@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, ChevronDown, Minimize2 } from 'lucide-react';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { aiService } from '../../lib/services/ai';
 import { useLocation } from 'react-router-dom';
 import FarmAsystLogo from '../ui/FarmAsystLogo';
@@ -78,7 +78,7 @@ export default function AIFloatingWidget() {
 
   useEffect(() => {
     if (open) {
-      setUnread(0);
+      queueMicrotask(() => setUnread(0));
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
   }, [open, messages]);

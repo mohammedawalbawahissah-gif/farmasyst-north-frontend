@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, X, CheckCheck, ExternalLink } from 'lucide-react';
-import { useNotifications } from '../../lib/notification-context';
+import { useNotifications } from '../../lib/hooks/useNotifications';
 import { notificationsService } from '../../lib/services/notifications';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import type { Notification } from '../../types';
 import NotificationDetail from './NotificationDetail';
 
@@ -44,11 +44,22 @@ export default function NotificationBell() {
   // Load notifications when panel opens
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    notificationsService.list(1)
-      .then(data => setNotifs(Array.isArray(data) ? data : (data as any).results ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await notificationsService.list(1);
+        if (!cancelled) {
+          setNotifs(Array.isArray(data) ? data : (data as { results?: Notification[] }).results ?? []);
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, [open]);
 
   const handleMarkAllRead = async () => {

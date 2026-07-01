@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../c
 import { useAsync } from '../../lib/hooks/useAsync';
 import { notificationsService, CREDIT_ALERT_META } from '../../lib/services/notifications';
 import { toArray } from '../../lib/api';
+import type { Notification } from '../../types';
 import { Bell, Send, RefreshCw } from 'lucide-react';
 import './admin.css';
 
@@ -12,7 +13,7 @@ const PRIORITY_BADGE: Record<string,'danger'|'warning'|'info'|'neutral'> = {
 
 export default function AdminCreditAlerts() {
   const alerts = useAsync(() => notificationsService.listCreditAlerts(), []);
-  const all    = toArray<any>(alerts.data);
+  const all    = toArray<Notification>(alerts.data);
 
   const unread   = all.filter(n => !n.is_read).length;
   const urgent   = all.filter(n => n.priority === 'urgent').length;

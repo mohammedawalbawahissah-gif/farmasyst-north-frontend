@@ -3,13 +3,14 @@ import { PageHeader, Card, Badge, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
+import type { FarmerProfile } from '../../types';
 import { Search } from 'lucide-react';
 
 export default function MonitoringFarmers() {
   const profiles = useAsync(() => adminService.listFarmerProfiles(), []);
   const [search, setSearch] = useState('');
 
-  const all = toArray(profiles.data) as any[];
+  const all = toArray<FarmerProfile>(profiles.data);
   const filtered = all.filter(p => {
     const s = search.toLowerCase();
     const name = `${p.user?.first_name ?? ''} ${p.user?.last_name ?? ''}`.toLowerCase();
@@ -55,7 +56,7 @@ export default function MonitoringFarmers() {
                 <tr><th>Name</th><th>Region</th><th>District</th><th>Years Farming</th><th>Credit Score</th><th>Status</th></tr>
               </thead>
               <tbody>
-                {filtered.map((p: any) => {
+                {filtered.map((p) => {
                   const name = `${p.user?.first_name ?? ''} ${p.user?.last_name ?? ''}`.trim() || `Farmer ${p.id}`;
                   return (
                     <tr key={p.id}>

@@ -6,6 +6,7 @@ import { toArray } from '../../lib/api';
 import { Plus, Pencil, Trash2, ImagePlus } from 'lucide-react';
 import type { FarmInput } from '../../types';
 import '../farmer/farmer.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 const INPUT_TYPES = [
   { value:'feed',         label:'🌾 Feed' },
@@ -43,8 +44,8 @@ export default function InputDealerListings() {
       if (editing) { await inputDealerService.updateListing(editing, fd); }
       else          { await inputDealerService.createListing(fd); }
       resetForm(); listings.refetch();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to save listing.');
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, 'Failed to save listing.'));
     } finally { setSaving(false); }
   };
 
@@ -58,7 +59,11 @@ export default function InputDealerListings() {
     await inputDealerService.deleteListing(id); listings.refetch();
   };
 
-  const inp = (field: string) => ({ value: (form as any)[field], onChange: (e: any) => setForm(f => ({ ...f, [field]: e.target.value })) });
+  const inp = (field: Exclude<keyof typeof form, 'is_available'>) => ({
+    value: form[field],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setForm(f => ({ ...f, [field]: e.target.value })),
+  });
 
   return (
     <div>

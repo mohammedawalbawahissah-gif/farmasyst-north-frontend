@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button, StatCard } from '../../components/ui';
 import { toArray } from '../../lib/api';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { trainingService } from '../../lib/services/training';
+import type { TrainingEnrolment } from '../../types';
 import { BookOpen, PlayCircle, FileText, Calendar, Award, X, ExternalLink } from 'lucide-react';
 import './farmer.css';
 
@@ -42,11 +43,11 @@ export default function Training() {
   const [activeModule, setActiveModule] = useState<Module | null>(null);
 
   const modList  = toArray<Module>(modules.data);
-  const enrolList = toArray<any>(enrols.data);
-  const enrolMap  = Object.fromEntries(enrolList.map((e: any) => [e.module, e]));
+  const enrolList = toArray<TrainingEnrolment>(enrols.data);
+  const enrolMap  = Object.fromEntries(enrolList.map((e) => [e.module, e]));
 
-  const completed  = enrolList.filter((e: any) => e.status === 'completed').length;
-  const inProgress = enrolList.filter((e: any) => e.status === 'in_progress').length;
+  const completed  = enrolList.filter((e) => e.status === 'completed').length;
+  const inProgress = enrolList.filter((e) => e.status === 'in_progress').length;
 
   const handleEnrol = async (moduleId: string) => {
     try { await trainingService.enrol(moduleId); enrols.refetch(); }
@@ -288,7 +289,7 @@ export default function Training() {
         : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--sp-md)' }}>
             {modList.map(mod => {
-              const enrol = enrolMap[mod.id] as any;
+              const enrol = enrolMap[mod.id];
               const hasContent = mod.video_url || mod.file;
               return (
                 <Card key={mod.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-sm)' }}>

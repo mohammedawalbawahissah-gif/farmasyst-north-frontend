@@ -48,6 +48,7 @@ export const CREDIT_ALERT_META: Record<string, {
 
 /** Build the SSE stream URL with the JWT token as a query param. */
 export function buildSSEUrl(accessToken: string): string {
-  const base = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1').replace(/\/$/, '');
+  const rootUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+  const base = `${rootUrl.replace(/\/$/, '')}/api/v1`;
   return `${base}/notifications/stream/?token=${encodeURIComponent(accessToken)}`;
 }

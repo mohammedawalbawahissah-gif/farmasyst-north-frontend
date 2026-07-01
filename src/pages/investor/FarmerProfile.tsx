@@ -3,7 +3,14 @@ import { PageHeader, Card, Badge, Button, SectionTitle } from '../../components/
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
-import type { Farm } from '../../types';
+import type { Farm, FarmerProfile } from '../../types';
+
+interface FarmerProfileDetail extends FarmerProfile {
+  loan_history_summary?: string;
+  total_borrowed?: string | number;
+  repayment_rate?: string | number;
+  default_count?: number;
+}
 import { toArray } from '../../lib/api';
 import { ArrowLeft } from 'lucide-react';
 import { displayName, userId } from '../../types';
@@ -25,12 +32,12 @@ export default function FarmerProfilePage() {
       </div>
     );
 
-  const p    = profile.data as any;
+  const p    = profile.data as FarmerProfileDetail;
   const name = displayName(p.user) || `Farmer ${p.id}`;
   const initials = name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
 
   // Find this farmer's farms
-  const farmerFarms = toArray<Farm>(farms.data).filter(f => userId(f.owner as any) === userId(p.user));
+  const farmerFarms = toArray<Farm>(farms.data).filter(f => userId(f.owner) === userId(p.user));
 
   return (
     <div>
@@ -87,9 +94,9 @@ export default function FarmerProfilePage() {
           <table className="data-table">
             <tbody>
               <tr><td style={{ color: 'var(--col-muted)' }}>Loan history</td><td>{p.loan_history_summary || '—'}</td></tr>
-              <tr><td style={{ color: 'var(--col-muted)' }}>Total borrowed</td><td>{p.total_borrowed ? `GHS ${parseFloat(p.total_borrowed).toLocaleString()}` : '—'}</td></tr>
+              <tr><td style={{ color: 'var(--col-muted)' }}>Total borrowed</td><td>{p.total_borrowed ? `GHS ${parseFloat(String(p.total_borrowed)).toLocaleString()}` : '—'}</td></tr>
               <tr><td style={{ color: 'var(--col-muted)' }}>Repayment rate</td><td>{p.repayment_rate ? `${p.repayment_rate}%` : '—'}</td></tr>
-              <tr><td style={{ color: 'var(--col-muted)' }}>Defaults</td><td style={{ color: p.default_count > 0 ? 'var(--col-danger)' : undefined }}>{p.default_count ?? 0}</td></tr>
+              <tr><td style={{ color: 'var(--col-muted)' }}>Defaults</td><td style={{ color: (p.default_count ?? 0) > 0 ? 'var(--col-danger)' : undefined }}>{p.default_count ?? 0}</td></tr>
             </tbody>
           </table>
         </Card>

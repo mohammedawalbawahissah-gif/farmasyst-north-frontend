@@ -3,6 +3,7 @@ import { PageHeader, Card, Badge, Button } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { vetService } from '../../lib/services/vet';
 import { toArray } from '../../lib/api';
+import type { VetBooking } from '../../types';
 import { CheckCircle, XCircle } from 'lucide-react';
 import '../farmer/farmer.css';
 
@@ -20,7 +21,7 @@ export default function VetBookings() {
   const [completing, setCompleting] = useState<string|null>(null);
   const [error, setError] = useState('');
 
-  const all = toArray<any>(bookings.data);
+  const all = toArray<VetBooking>(bookings.data);
   const shown = filter === 'all' ? all : all.filter(b => b.status === filter);
 
   const handleConfirm = async (id: string) => {

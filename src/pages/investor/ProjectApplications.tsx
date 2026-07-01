@@ -6,6 +6,7 @@ import { toArray } from '../../lib/api';
 import { Plus, Trash2, ChevronDown, ChevronUp, Send, UserPlus, X, Pencil } from 'lucide-react';
 import '../farmer/farmer.css';
 import './investor.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'danger' | 'neutral' | 'info'> = {
   draft:        'neutral',
@@ -184,8 +185,8 @@ export default function ProjectApplications() {
       cancelEdit();
       projects.refetch();
 
-    } catch (err: any) {
-      setCreateError(err?.response?.data?.detail ?? 'Failed to save project. Please try again.');
+    } catch (err: unknown) {
+      setCreateError(getApiErrorMessage(err, 'Failed to save project. Please try again.'));
     } finally {
       setCreateBusy(false);
     }
@@ -201,8 +202,8 @@ export default function ProjectApplications() {
       await projectService.submit(proj.id);
       showMsg(`"${proj.project_name}" submitted for review.`);
       projects.refetch();
-    } catch (err: any) {
-      showMsg(err?.response?.data?.detail ?? 'Submit failed.', 'error');
+    } catch (err: unknown) {
+      showMsg(getApiErrorMessage(err, 'Submit failed.'), 'error');
     } finally {
       setBusyId(null);
     }
@@ -215,8 +216,8 @@ export default function ProjectApplications() {
       await projectService.withdraw(proj.id);
       showMsg(`"${proj.project_name}" withdrawn.`);
       projects.refetch();
-    } catch (err: any) {
-      showMsg(err?.response?.data?.detail ?? 'Withdraw failed.', 'error');
+    } catch (err: unknown) {
+      showMsg(getApiErrorMessage(err, 'Withdraw failed.'), 'error');
     } finally {
       setBusyId(null);
     }

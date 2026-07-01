@@ -32,13 +32,18 @@ export interface PayFullBalanceResult {
   authorization_url?: string;
 }
 
+export interface RepayResult {
+  payment: unknown;
+  authorization_url?: string;
+}
+
 export const paymentsService = {
   // ── Repayment Schedules ──────────────────────────────────────────────────
   listSchedules: (params?: Record<string, string>) =>
     api.get<Paginated<RepaymentSchedule>>('/payments/schedules/', { params }).then(r => r.data),
   getSchedule: (id: string) =>
     api.get<RepaymentSchedule>(`/payments/schedules/${id}/`).then(r => r.data),
-  initiateRepayment: (data: RepayPayload) =>
+  initiateRepayment: (data: RepayPayload): Promise<RepayResult> =>
     api.post('/payments/initiate-repayment/', data).then(r => r.data),
   payFullBalance: (data: PayFullBalancePayload) =>
     api.post<PayFullBalanceResult>('/payments/pay-full-balance/', data).then(r => r.data),

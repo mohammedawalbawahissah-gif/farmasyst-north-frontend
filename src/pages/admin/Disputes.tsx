@@ -3,11 +3,12 @@ import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
 import { toArray } from '../../lib/api';
 import { displayName } from '../../types';
+import type { CreditAgreement } from '../../types';
 import './admin.css';
 
 export default function AdminDisputes() {
   const agreements = useAsync(() => creditService.listAgreements(), []);
-  const ags = toArray<any>(agreements.data);
+  const ags = toArray<CreditAgreement>(agreements.data);
   const defaulted = ags.filter(a => a.status === 'defaulted');
   const cancelled = ags.filter(a => a.status === 'cancelled');
 

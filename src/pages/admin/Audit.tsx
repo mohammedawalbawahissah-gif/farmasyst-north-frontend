@@ -1,7 +1,7 @@
 import { PageHeader, Card, Badge, SectionTitle } from '../../components/ui';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { farmsService } from '../../lib/services/farms';
-import type { Farm, FarmAuditReport } from '../../types';
+import type { Farm, FarmAuditReport, User } from '../../types';
 import { adminService } from '../../lib/services/admin';
 import { toArray } from '../../lib/api';
 import './admin.css';
@@ -17,7 +17,7 @@ export default function AdminAudit() {
 
   const farmMap    = Object.fromEntries(toArray<Farm>(farms.data).map(f => [f.id, f]));
   const officerMap = Object.fromEntries(
-    toArray<any>(officers.data).map(u => [u.id, u.full_name || `${u.first_name} ${u.last_name}`])
+    toArray<User>(officers.data).map(u => [u.id, u.full_name || `${u.first_name} ${u.last_name}`])
   );
   const all = toArray<FarmAuditReport>(audits.data);
 

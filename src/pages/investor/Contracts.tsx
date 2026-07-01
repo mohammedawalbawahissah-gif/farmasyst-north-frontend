@@ -60,9 +60,13 @@ export default function Contracts() {
       setShowReqForm(null);
       setReqNote('');
       disbReqs.refetch();
-    } catch (e: any) {
-      const data = e?.response?.data;
-      const msg = data?.detail || data?.non_field_errors?.[0] || data?.agreement?.[0] || Object.values(data || {}).flat()[0] || 'Request failed. Please try again.';
+    } catch (e: unknown) {
+      const data = (e as { response?: { data?: Record<string, unknown> } })?.response?.data;
+      const msg = (data?.detail as string | undefined)
+        || (data?.non_field_errors as string[] | undefined)?.[0]
+        || (data?.agreement as string[] | undefined)?.[0]
+        || (Object.values(data ?? {}).flat()[0] as string | undefined)
+        || 'Request failed. Please try again.';
       setError(msg);
     }
     finally { setRequesting(null); }

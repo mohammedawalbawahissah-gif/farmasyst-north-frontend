@@ -1,7 +1,8 @@
 import { Tractor, TrendingUp, FileText, BookOpen, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toArray } from '../../lib/api';
 import { PageHeader, StatCard, Card, Badge, Button, SectionTitle } from '../../components/ui';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '../../lib/hooks/useAuth';
 import { authService } from '../../lib/services/auth';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { creditService } from '../../lib/services/credit';
@@ -23,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function FarmerDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const apps      = useAsync(() => creditService.listApps(), []);
@@ -53,7 +55,7 @@ export default function FarmerDashboard() {
       <PageHeader
         title={`Welcome back, ${user?.first_name ?? ''} 👋`}
         subtitle="Here's what's happening on your farm today."
-        action={<Button size="sm" onClick={() => window.location.href = '/farmer/credit'}>+ New Application</Button>}
+        action={<Button size="sm" onClick={() => navigate('/farmer/credit')}>+ New Application</Button>}
       />
 
       {nextDue && (
@@ -63,7 +65,7 @@ export default function FarmerDashboard() {
             Your next repayment of <strong>GHS {parseFloat(nextDue.amount_due).toLocaleString()}</strong> is
             due on {new Date(nextDue.due_date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })}.
           </span>
-          <Button size="sm" variant="secondary" onClick={() => window.location.href = '/farmer/repayments'}>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/farmer/repayments')}>
             Pay Now
           </Button>
         </div>
@@ -75,7 +77,7 @@ export default function FarmerDashboard() {
           <span>
             You have <strong>{contractsToSign.length}</strong> investment agreement{contractsToSign.length > 1 ? 's' : ''} waiting for your signature.
           </span>
-          <Button size="sm" variant="secondary" onClick={() => window.location.href = '/farmer/contracts'}>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/farmer/contracts')}>
             Review &amp; Sign
           </Button>
         </div>
@@ -159,7 +161,7 @@ export default function FarmerDashboard() {
             <p className="repayment-note">
               {repayPct}% repaid{nextDue ? ` — next due ${new Date(nextDue.due_date).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}` : ''}
             </p>
-            <Button style={{ marginTop: 'var(--sp-md)', width: '100%' }} onClick={() => window.location.href = '/farmer/repayments'}>
+            <Button style={{ marginTop: 'var(--sp-md)', width: '100%' }} onClick={() => navigate('/farmer/repayments')}>
               Make a Repayment
             </Button>
           </Card>
@@ -169,16 +171,16 @@ export default function FarmerDashboard() {
               <SectionTitle style={{ marginTop: 'var(--sp-lg)' }}>Credit Score</SectionTitle>
               <Card className="credit-score-card">
                 <div className="credit-score__ring">
-                  <span className="credit-score__value">{parseFloat((farmerProfile.data as any)?.credit_score ?? '0').toFixed(1)}</span>
+                  <span className="credit-score__value">{parseFloat(farmerProfile.data?.credit_score ?? '0').toFixed(1)}</span>
                   <span className="credit-score__label">/ 999</span>
                 </div>
                 <div>
                   <Badge variant={user.is_verified ? 'success' : 'warning'}>
                     {user.is_verified ? 'Verified' : 'Pending Verification'}
                   </Badge>
-                  {(farmerProfile.data as any)?.credit_score_updated_at && (
+                  {farmerProfile.data?.credit_score_updated_at && (
                     <p style={{ fontSize: 11, color: 'var(--col-muted)', marginTop: 4 }}>
-                      Updated: {new Date((farmerProfile.data as any).credit_score_updated_at).toLocaleDateString('en-GH')}
+                      Updated: {new Date(farmerProfile.data.credit_score_updated_at).toLocaleDateString('en-GH')}
                     </p>
                   )}
                   <p className="credit-score__desc">Based on farm activity, repayment history, and verification status.</p>

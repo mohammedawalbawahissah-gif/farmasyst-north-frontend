@@ -1,7 +1,9 @@
 import { PageHeader, Card, Button } from '../../components/ui';
+import { useNavigate } from 'react-router-dom';
 import './consumer.css';
 
 export default function Subscriptions() {
+  const navigate = useNavigate();
   return (
     <div>
       <PageHeader title="Subscriptions" subtitle="Set up regular supply orders from your favourite farms." />
@@ -16,7 +18,7 @@ export default function Subscriptions() {
           Subscription contracts are managed through FarmAsyst North. Contact our team or browse
           the marketplace to find farms offering subscription plans.
         </p>
-        <Button onClick={()=>window.location.href='/consumer'}>Browse Marketplace</Button>
+        <Button onClick={() => navigate('/consumer')}>Browse Marketplace</Button>
       </Card>
     </div>
   );

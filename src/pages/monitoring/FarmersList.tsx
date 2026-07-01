@@ -3,7 +3,7 @@ import { PageHeader, Card, Badge, Button, SectionTitle, StatCard } from '../../c
 import { useAsync } from '../../lib/hooks/useAsync';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
-import type { Farm } from '../../types';
+import type { Farm, FarmerProfile } from '../../types';
 import { toArray } from '../../lib/api';
 import { displayName, userId } from '../../types';
 import { Search, X, MapPin } from 'lucide-react';
@@ -18,12 +18,12 @@ export default function MOFarmersList() {
   const farms    = useAsync(() => farmsService.list(), []);
   const [search,   setSearch]   = useState('');
   const [filter,   setFilter]   = useState('');
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<{ p: FarmerProfile; farm?: Farm; name: string } | null>(null);
 
-  const allProfiles = toArray<any>(profiles.data);
-  const farmMap     = Object.fromEntries(toArray<Farm>(farms.data).map(f => [userId(f.owner as any), f]));
+  const allProfiles = toArray<FarmerProfile>(profiles.data);
+  const farmMap     = Object.fromEntries(toArray<Farm>(farms.data).map(f => [userId(f.owner), f]));
 
-  const filtered = allProfiles.filter((p: any) => {
+  const filtered = allProfiles.filter((p) => {
     const name = displayName(p.user) || p.user?.email || '';
     const s    = search.toLowerCase();
     const matchS = !s || name.toLowerCase().includes(s) || (p.district ?? '').toLowerCase().includes(s) || (p.region ?? '').toLowerCase().includes(s);
@@ -31,8 +31,8 @@ export default function MOFarmersList() {
     return matchS && matchF;
   });
 
-  const verified   = allProfiles.filter((p: any) => p.verification_status === 'verified').length;
-  const pending    = allProfiles.filter((p: any) => !p.verification_status || p.verification_status === 'pending').length;
+  const verified   = allProfiles.filter((p) => p.verification_status === 'verified').length;
+  const pending    = allProfiles.filter((p) => !p.verification_status || p.verification_status === 'pending').length;
 
   return (
     <div>
@@ -70,7 +70,7 @@ export default function MOFarmersList() {
               <tr><th>Name</th><th>Region</th><th>District</th><th>Years Farming</th><th>Credit Score</th><th>Farm</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.map((p: any) => {
+              {filtered.map((p) => {
                 const name = displayName(p.user) || p.user?.email || `Farmer ${p.id}`;
                 const farm = farmMap[userId(p.user)];
                 return (

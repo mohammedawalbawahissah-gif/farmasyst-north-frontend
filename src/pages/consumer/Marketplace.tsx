@@ -8,6 +8,7 @@ import { inputDealerService } from '../../lib/services/inputDealer';
 import type { Produce, FarmInput } from '../../types';
 import { Search, X, MapPin, Truck, Store, Package, Phone } from 'lucide-react';
 import './consumer.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 const PRODUCE_TYPES = [
   { value: '',            label: 'All types' },
@@ -47,7 +48,7 @@ function detectGhanaNetwork(phoneRaw: string): GhanaNetwork | null {
 }
 
 interface OrderModal {
-  produce:       any;
+  produce:       Produce;
   qty:           string;
   deliveryType:  DeliveryType;
   paymentMethod: PaymentMethod;
@@ -90,7 +91,7 @@ export default function ConsumerMarketplace() {
     return 0;
   });
 
-  const openModal = (produce: any) => {
+  const openModal = (produce: Produce) => {
     // Default to the first payment method the seller actually accepts
     const defaultPayment: PaymentMethod =
       produce.accepts_momo          ? 'momo' :
@@ -156,7 +157,7 @@ export default function ConsumerMarketplace() {
         delivery_date:    modal.pickupDate || undefined,
         payment_method:   modal.paymentMethod,
         notes:            modal.notes,
-      }) as any;
+      });
 
       const orderId = order?.id;
 
@@ -174,7 +175,7 @@ export default function ConsumerMarketplace() {
       }
 
       if (modal.paymentMethod === 'bank_transfer') {
-        const result = await marketplaceService.initiatePayment(orderId, {}) as any;
+        const result = await marketplaceService.initiatePayment(orderId, {});
         setStep('done');
         setMsg(
           `Order placed! Transfer GHS ${parseFloat(modal.produce.price) * parseInt(modal.qty)} to:
@@ -190,7 +191,7 @@ Ref: ${result.reference}`
       }
 
       if (modal.paymentMethod === 'momo') {
-        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone ?? undefined }) as any;
+        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone ?? undefined });
         setStep('done');
         setMsg(result.message || `MoMo prompt sent to ${phone}. Approve on your phone to complete payment.`);
         setMsgType('success');
@@ -200,7 +201,7 @@ Ref: ${result.reference}`
       }
 
       if (modal.paymentMethod === 'hubtel_momo') {
-        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone ?? undefined }) as any;
+        const result = await marketplaceService.initiatePayment(orderId, { phone_number: phone ?? undefined });
         if (result.checkout_url) {
           setStep('done');
           setMsg('Redirecting to Hubtel to complete your Mobile Money payment...');
@@ -214,7 +215,7 @@ Ref: ${result.reference}`
       }
 
       if (modal.paymentMethod === 'card') {
-        const result = await marketplaceService.initiatePayment(orderId, {}) as any;
+        const result = await marketplaceService.initiatePayment(orderId, {});
         // Redirect to Hubtel checkout URL
         if (result.checkout_url) {
           setStep('done');
@@ -228,8 +229,8 @@ Ref: ${result.reference}`
         return;
       }
 
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail || 'Could not place order. Please try again.';
+    } catch (err: unknown) {
+      const detail = getApiErrorMessage(err, 'Could not place order. Please try again.');
       if (step === 'payment') { setMomoErr(detail); }
       else                    { setModalErr(detail); }
     } finally {
@@ -321,7 +322,7 @@ Ref: ${result.reference}`
                   {parseFloat(p.avg_rating) > 0 && <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>★ {parseFloat(p.avg_rating).toFixed(1)}</span>}
                 </div>
                 <strong style={{ fontSize: 15 }}>{p.name}</strong>
-                {(p as any).egg_size && <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>🥚 {(p as any).egg_size.charAt(0).toUpperCase() + (p as any).egg_size.slice(1)} eggs</span>}
+                {p.egg_size && <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>🥚 {p.egg_size.charAt(0).toUpperCase() + p.egg_size.slice(1)} eggs</span>}
                 <div style={{ fontSize: 13, color: 'var(--col-muted)' }}>
                   {p.farm_name && <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={11} />{p.farm_name}</div>}
                   {p.farm_region && <div style={{ marginLeft: 15, fontSize: 12 }}>{p.farm_region}</div>}
@@ -332,7 +333,7 @@ Ref: ${result.reference}`
                     <div style={{ fontSize: 12, color: 'var(--col-muted)' }}>per {p.unit}</div>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--col-muted)', textAlign: 'right' }}>
-                    {(p as any).quantity_available ?? p.quantity} {p.unit} avail.
+                    {p.quantity_available ?? p.quantity} {p.unit} avail.
                   </div>
                 </div>
                 {p.is_organic && <Badge variant="success">🌿 Organic</Badge>}
@@ -487,7 +488,7 @@ Ref: ${result.reference}`
                       onChange={e => setModal(m => m ? { ...m, qty: e.target.value } : m)}
                     />
                     <span style={{ fontSize: 12, color: 'var(--col-muted)' }}>
-                      Available: {(modal.produce as any).quantity_available ?? modal.produce.quantity} {modal.produce.unit} · GHS {parseFloat(modal.produce.price).toLocaleString()} per {modal.produce.unit}
+                      Available: {modal.produce.quantity_available ?? modal.produce.quantity} {modal.produce.unit} · GHS {parseFloat(modal.produce.price).toLocaleString()} per {modal.produce.unit}
                     </span>
                   </div>
 
@@ -680,8 +681,8 @@ function ConsumerInputShop() {
                 <button
                   className="btn btn--secondary btn--sm"
                   style={{width:'100%',display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}
-                  onClick={() => (l as any).dealer_phone
-                    ? window.open(`tel:${(l as any).dealer_phone}`)
+                  onClick={() => l.dealer_phone
+                    ? window.open(`tel:${l.dealer_phone}`)
                     : alert(`Contact ${l.business_name} — no phone number listed.`)}
                 >
                   <Phone size={13}/> Contact Dealer

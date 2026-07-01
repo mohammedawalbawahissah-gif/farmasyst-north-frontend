@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { PageHeader, Card, Button, SectionTitle } from '../../components/ui';
-import { useAuth } from '../../lib/auth-context';
-import { aiService } from '../../lib/services/ai';
+import { useAuth } from '../../lib/hooks/useAuth';
+import { aiService, type CreditworthinessResult } from '../../lib/services/ai';
 import { adminService } from '../../lib/services/admin';
 import { farmsService } from '../../lib/services/farms';
 import { useAsync } from '../../lib/hooks/useAsync';
 import { toArray } from '../../lib/api';
-import type { Farm } from '../../types';
+import type { Farm, FarmerProfile, User } from '../../types';
 import { Send, TrendingUp, RefreshCw, ChevronDown, Search } from 'lucide-react';
 import DiseaseDetection from '../../components/ai/DiseaseDetection';
 import FarmAsystLogo from '../../components/ui/FarmAsystLogo';
 import '../farmer/farmer.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 type Tab = 'chat' | 'disease' | 'credit';
 
@@ -302,32 +303,32 @@ export default function AIAssistant() {
   const [creditFarmerId, setCreditFarmerId] = useState<string>(
     role === 'farmer' ? (user?.id ?? '') : '',
   );
-  const [creditResult, setCreditResult] = useState<any>(null);
+  const [creditResult, setCreditResult] = useState<CreditworthinessResult | null>(null);
   const [creditBusy, setCreditBusy] = useState(false);
   const [creditError, setCreditError] = useState('');
 
   // Load farmer list for admin dropdown
-  const farmerListAsync = useAsync(
+  const farmerListAsync = useAsync<(FarmerProfile | User)[] | { results: (FarmerProfile | User)[] }>(
     () =>
       role === 'admin'
         ? adminService.listFarmerProfiles()
-        : Promise.resolve([] as any[]),
+        : Promise.resolve([]),
     [role],
   );
 
   // Normalise the farmer list into simple { id, name, district, region }
   const farmerOptions: FarmerOption[] = useMemo(() => {
-    const raw = toArray<any>(farmerListAsync.data);
+    const raw = toArray<FarmerProfile | User>(farmerListAsync.data);
     return raw
       .map(item => {
         // /profiles/farmers/ returns FarmerProfile with nested user
-        const u = item.user ?? item;
+        const u: User = 'user' in item ? item.user : item;
         const name = u.full_name?.trim() || `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email;
         return {
-          id: u.id as string,
+          id: u.id,
           name: name || 'Unknown Farmer',
-          district: item.district ?? u.district,
-          region: item.region ?? u.region,
+          district: 'district' in item ? item.district : undefined,
+          region: 'region' in item ? item.region : undefined,
         } as FarmerOption;
       })
       .filter(f => f.id && f.name)
@@ -342,8 +343,8 @@ export default function AIAssistant() {
     try {
       const res = await aiService.scoreCreditworthiness(creditFarmerId);
       setCreditResult(res);
-    } catch (err: any) {
-      setCreditError(err?.response?.data?.detail ?? 'Credit scoring failed.');
+    } catch (err: unknown) {
+      setCreditError(getApiErrorMessage(err, 'Credit scoring failed.'));
     } finally {
       setCreditBusy(false);
     }
@@ -678,7 +679,7 @@ export default function AIAssistant() {
                   marginBottom: 'var(--sp-md)',
                 }}
               >
-                {Object.entries(creditResult.dimensions).map(([key, val]: [string, any]) => (
+                {Object.entries(creditResult.dimensions).map(([key, val]: [string, number]) => (
                   <div
                     key={key}
                     style={{

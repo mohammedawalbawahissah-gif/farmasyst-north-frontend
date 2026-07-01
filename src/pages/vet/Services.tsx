@@ -6,6 +6,7 @@ import { toArray } from '../../lib/api';
 import type { VetService } from '../../types';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import '../farmer/farmer.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 const SERVICE_TYPES = [
   { value:'vaccination',   label:'💉 Vaccination' },
@@ -56,8 +57,8 @@ export default function VetServices() {
       if (editing) { await vetService.updateService(editing, payload); }
       else          { await vetService.createService(payload); }
       resetForm(); services.refetch();
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to save service.');
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e, 'Failed to save service.'));
     } finally { setSaving(false); }
   };
 

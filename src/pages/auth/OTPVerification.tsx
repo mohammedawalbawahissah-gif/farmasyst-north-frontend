@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { otpService } from '../../lib/services/otp';
 import FarmAsystLogo from '../../components/ui/FarmAsystLogo';
 import './Login.css';
+import { getApiErrorMessage } from '../../lib/errors';
 
 interface OTPVerificationProps {
   userId:     string;
@@ -72,8 +73,8 @@ export default function OTPVerification({
         else if (onComplete) onComplete();
         else navigate('/login');
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? 'Incorrect code. Please try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Incorrect code. Please try again.'));
     } finally {
       setBusy(false);
     }
