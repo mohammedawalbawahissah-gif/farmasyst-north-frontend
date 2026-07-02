@@ -26,10 +26,19 @@ export default function OTPVerification({
   const [error,        setError]        = useState('');
   const [resendBusy,   setResendBusy]   = useState(false);
   const [resendMsg,    setResendMsg]    = useState('');
+  const [resendIsError, setResendIsError] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [verified,     setVerified]     = useState<string[]>([]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => { inputRefs.current[0]?.focus(); }, [activeChannel]);
+
+  // Tick the resend cooldown down once a second while active.
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   const codeString = code.join('');
 
@@ -81,13 +90,23 @@ export default function OTPVerification({
   };
 
   const handleResend = async () => {
-    setResendBusy(true); setResendMsg('');
+    if (resendBusy || resendCooldown > 0) return;
+    setResendBusy(true); setResendMsg(''); setResendIsError(false);
     try {
       await otpService.resend(userId, activeChannel);
       setResendMsg(`New code sent via ${activeChannel.toUpperCase()}.`);
+      // Backend allows 3 resends/min — a client-side cooldown keeps people
+      // from burning through that limit by mashing the button, and keeps
+      // the button itself in sync with the real wait time.
+      setResendCooldown(25);
       setTimeout(() => setResendMsg(''), 5000);
-    } catch {
-      setResendMsg('Failed to resend. Please try again.');
+    } catch (err: unknown) {
+      // Surface the backend's actual message (e.g. "Request was throttled.
+      // Expected available in 42 seconds.") instead of a generic failure —
+      // otherwise a rate-limited user just sees "Failed" with no explanation.
+      setResendIsError(true);
+      setResendMsg(getApiErrorMessage(err, 'Failed to resend. Please try again.'));
+      setResendCooldown(20);
     } finally {
       setResendBusy(false);
     }
@@ -172,7 +191,7 @@ export default function OTPVerification({
         )}
 
         {resendMsg && (
-          <p style={{ color: '#16a34a', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
+          <p style={{ color: resendIsError ? '#dc2626' : '#16a34a', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
             {resendMsg}
           </p>
         )}
@@ -189,13 +208,14 @@ export default function OTPVerification({
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <button
             onClick={handleResend}
-            disabled={resendBusy}
+            disabled={resendBusy || resendCooldown > 0}
             style={{
-              background: 'none', border: 'none', cursor: resendBusy ? 'not-allowed' : 'pointer',
+              background: 'none', border: 'none',
+              cursor: (resendBusy || resendCooldown > 0) ? 'not-allowed' : 'pointer',
               color: '#2D4A1E', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
             }}
           >
-            {resendBusy ? 'Sending…' : 'Resend code'}
+            {resendBusy ? 'Sending…' : resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : 'Resend code'}
           </button>
           {onSkip && (
             <button
